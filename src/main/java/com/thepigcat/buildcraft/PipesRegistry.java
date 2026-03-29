@@ -22,13 +22,28 @@ public final class PipesRegistry {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static boolean isErrored = false;
 
+    /**
+     * Writes default pipe JSON files for any pipes that don't have a config file yet.
+     * This ensures new pipes added in updates are available in-game.
+     */
     public static void writeDefaultPipeFiles() {
         File dir = getPipesDirectory();
 
-        if (!dir.exists() && dir.mkdirs()) {
-            Map<String, Pipe> pipes = BCPipes.HELPER.getPipes();
-            for (Map.Entry<String, Pipe> entry : pipes.entrySet()) {
-                File file = new File(dir, entry.getKey() + ".json");
+        // Create directory if it doesn't exist
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        if (!dir.isDirectory()) {
+            BuildcraftLegacy.LOGGER.error("Failed to create pipes config directory: {}", dir.getAbsolutePath());
+            return;
+        }
+
+        Map<String, Pipe> pipes = BCPipes.HELPER.getPipes();
+        for (Map.Entry<String, Pipe> entry : pipes.entrySet()) {
+            File file = new File(dir, entry.getKey() + ".json");
+            // Only write if the file doesn't exist yet (new pipes from updates)
+            if (!file.exists()) {
                 JsonElement json = entry.getValue().toJson();
                 if (json == null) {
                     BuildcraftLegacy.LOGGER.error("Pipe {} could not be written to Json due to encoding error", entry.getKey());
@@ -37,6 +52,7 @@ public final class PipesRegistry {
 
                 try (FileWriter writer = new FileWriter(file)) {
                     GSON.toJson(json, writer);
+                    BuildcraftLegacy.LOGGER.info("Created pipe config: {}", entry.getKey());
                 } catch (Exception e) {
                     BuildcraftLegacy.LOGGER.error("An error occurred while generating pipe jsons, affected pipe: {}", entry.getKey(), e);
                 }
@@ -52,7 +68,7 @@ public final class PipesRegistry {
 
         PIPES.clear();
 
-        if (!dir.mkdirs() && dir.isDirectory()) {
+        if (dir.isDirectory()) {
             loadFiles(dir);
         }
 
@@ -115,30 +131,6 @@ public final class PipesRegistry {
 
     private static boolean handleMigrations(JsonObject json) {
         boolean changed = false;
-
-//        // add disabled flag
-//        if (!json.has("disabled")) {
-//            json.addProperty("disabled", 0.1f);
-//            changed = true;
-//        }
-//
-//        // add transfer_speed flag
-//        if (!json.has("transfer_speed")) {
-//            json.addProperty("transfer_speed", 0.1f);
-//            changed = true;
-//        }
-//
-//        // add extracting field
-//        if (!json.has("extracting")) {
-//            json.addProperty("extracting", false);
-//            changed = true;
-//        }
-//
-//        if (!json.has("texture")) {
-//            json.addProperty("texture", "");
-//            changed = true;
-//        }
-
         return changed;
     }
 

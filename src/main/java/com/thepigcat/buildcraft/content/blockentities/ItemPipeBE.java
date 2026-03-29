@@ -1,7 +1,9 @@
 package com.thepigcat.buildcraft.content.blockentities;
 
 import com.thepigcat.buildcraft.BuildcraftLegacy;
+import com.thepigcat.buildcraft.PipesRegistry;
 import com.thepigcat.buildcraft.api.blockentities.PipeBlockEntity;
+import com.thepigcat.buildcraft.api.pipes.Pipe;
 import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
 import com.thepigcat.buildcraft.networking.SyncPipeMovementPayload;
 import com.thepigcat.buildcraft.registries.BCBlockEntities;
@@ -91,8 +93,9 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
 
         if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
                 this.lastMovement = this.movement;
-                // TODO: Use custom movement
-                this.movement += 0.01f;
+                // Use pipe's configured transfer speed
+                float speed = getTransferSpeed();
+                this.movement += speed;
 
                 if (!level.isClientSide()) {
                     BlockCapabilityCache<IItemHandler, Direction> fromCache = this.capabilityCaches.get(from);
@@ -133,6 +136,19 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
 
     public Direction getTo() {
         return to;
+    }
+
+    /**
+     * Gets the transfer speed for this pipe from the pipe registry.
+     * Falls back to 0.01f if the pipe is not found.
+     */
+    protected float getTransferSpeed() {
+        String pipeId = this.getBlockState().getBlock().builtInRegistryHolder().key().location().getPath();
+        Pipe pipe = PipesRegistry.PIPES.get(pipeId);
+        if (pipe != null) {
+            return pipe.transferSpeed();
+        }
+        return 0.01f;
     }
 
     private void moveItemForward(ItemPipeBE blockEntity) {
