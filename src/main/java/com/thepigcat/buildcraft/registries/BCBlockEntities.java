@@ -4,6 +4,7 @@ import com.thepigcat.buildcraft.BuildcraftLegacy;
 import com.thepigcat.buildcraft.content.blockentities.*;
 import com.thepigcat.buildcraft.content.blocks.ExtractingItemPipeBlock;
 import com.thepigcat.buildcraft.content.blocks.ItemPipeBlock;
+import com.thepigcat.buildcraft.content.blocks.VoidItemPipeBlock;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -19,6 +20,9 @@ public final class BCBlockEntities {
 
     public static final Supplier<BlockEntityType<ExtractItemPipeBE>> EXTRACTING_ITEM_PIPE = BLOCK_ENTITIES.register("extracting_item_pipe",
             () -> BlockEntityType.Builder.of(ExtractItemPipeBE::new, collectBlocks(ExtractingItemPipeBlock.class)).build(null));
+
+    public static final Supplier<BlockEntityType<VoidItemPipeBE>> VOID_ITEM_PIPE = BLOCK_ENTITIES.register("void_item_pipe",
+            () -> BlockEntityType.Builder.of(VoidItemPipeBE::new, collectBlocks(VoidItemPipeBlock.class)).build(null));
 
     public static final Supplier<BlockEntityType<TankBE>> TANK = BLOCK_ENTITIES.register("tank",
             () -> BlockEntityType.Builder.of(TankBE::new, BCBlocks.TANK.get()).build(null));

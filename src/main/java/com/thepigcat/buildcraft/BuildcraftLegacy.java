@@ -11,6 +11,7 @@ import com.thepigcat.buildcraft.api.pipes.PipeType;
 import com.thepigcat.buildcraft.content.blockentities.CrateBE;
 import com.thepigcat.buildcraft.content.blockentities.ItemPipeBE;
 import com.thepigcat.buildcraft.content.blockentities.TankBE;
+import com.thepigcat.buildcraft.content.blockentities.VoidItemPipeBE;
 import com.thepigcat.buildcraft.data.BCDataComponents;
 import com.thepigcat.buildcraft.networking.RedstoneSignalTypeSyncPayload;
 import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
@@ -101,6 +102,7 @@ public final class BuildcraftLegacy {
         // ITEMS
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, BCBlockEntities.ITEM_PIPE.get(), ItemPipeBE::getItemHandler);
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, BCBlockEntities.EXTRACTING_ITEM_PIPE.get(), ItemPipeBE::getItemHandler);
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, BCBlockEntities.VOID_ITEM_PIPE.get(), VoidItemPipeBE::getItemHandler);
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, BCBlockEntities.CRATE.get(), CrateBE::getItemHandler);
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, BCBlockEntities.STIRLING_ENGINE.get(), ContainerBlockEntity::getItemHandlerOnSide);
         // FLUID
