@@ -2,8 +2,6 @@ package com.thepigcat.buildcraft;
 
 import com.mojang.datafixers.util.Either;
 import com.portingdeadmods.portingdeadlibs.api.blockentities.ContainerBlockEntity;
-import com.portingdeadmods.portingdeadlibs.api.config.PDLConfig;
-import com.portingdeadmods.portingdeadlibs.api.config.PDLConfigHelper;
 import com.portingdeadmods.portingdeadlibs.api.fluids.PDLFluid;
 import com.thepigcat.buildcraft.api.capabilties.JumboItemHandlerItemWrapper;
 import com.thepigcat.buildcraft.api.pipes.Pipe;
@@ -86,7 +84,8 @@ public final class BuildcraftLegacy {
         BCMenuTypes.MENUS.register(modEventBus);
         BCPipeTypes.init();
 
-        PDLConfigHelper.registerConfig(BCConfig.class, ModConfig.Type.COMMON).register(modContainer);
+        // Register config with NeoForge
+        modContainer.registerConfig(ModConfig.Type.COMMON, BCConfig.SPEC);
 
         modEventBus.addListener(this::attachCaps);
         modEventBus.addListener(this::onCommonSetup);

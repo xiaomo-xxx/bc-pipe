@@ -140,28 +140,27 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     }
 
     /**
-     * Gets the transfer speed for this pipe from the config.
-     * Falls back to the pipe's JSON value if not a known type.
+     * Gets the transfer speed as per-tick movement.
+     * Config value is "blocks per second", convert to per-tick (20 ticks/sec).
      */
     protected float getTransferSpeed() {
         String pipeId = this.getBlockState().getBlock().builtInRegistryHolder().key().location().getPath();
 
-        // Use config values for known pipe categories
+        double blocksPerSecond;
         if (pipeId.contains("gold")) {
-            return BCConfig.goldPipeSpeed;
-        }
-        if (pipeId.contains("void")) {
-            return BCConfig.voidPipeSpeed;
-        }
-        if (pipeId.contains("diamond")) {
-            return BCConfig.diamondPipeSpeed;
-        }
-        if (pipeId.contains("wooden")) {
-            return BCConfig.woodenPipeSpeed;
+            blocksPerSecond = BCConfig.goldPipeSpeed;
+        } else if (pipeId.contains("void")) {
+            blocksPerSecond = BCConfig.voidPipeSpeed;
+        } else if (pipeId.contains("diamond")) {
+            blocksPerSecond = BCConfig.diamondPipeSpeed;
+        } else if (pipeId.contains("wooden")) {
+            blocksPerSecond = BCConfig.woodenPipeSpeed;
+        } else {
+            blocksPerSecond = BCConfig.basicPipeSpeed;
         }
 
-        // All other pipes use basic speed
-        return BCConfig.basicPipeSpeed;
+        // Convert blocks/sec to per-tick movement (20 ticks per second)
+        return (float) (blocksPerSecond / 20.0);
     }
 
     private void moveItemForward(ItemPipeBE blockEntity) {

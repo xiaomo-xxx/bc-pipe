@@ -1,54 +1,138 @@
 package com.thepigcat.buildcraft;
 
-import com.portingdeadmods.portingdeadlibs.api.config.ConfigValue;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
-import org.jetbrains.annotations.NotNull;
 
+@EventBusSubscriber(modid = BuildcraftLegacy.MODID)
 public final class BCConfig {
-    @ConfigValue(name = "Tank Capacity", comment = "The maximum amount of fluid a tank can store", category = "capacity.fluid")
-    public static int tankCapacity = 8000;
+    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
-    @ConfigValue(name = "Combustion Engine Fluid Capacity", comment = "The maximum amount of fluid a combustion engine can store", category = "capacity.fluid")
-    public static int combustionEngineFluidCapacity = 2000;
+    // === Fluid ===
+    private static final ModConfigSpec.IntValue TANK_CAPACITY = BUILDER
+            .comment("储罐容量 (mB)")
+            .defineInRange("tankCapacity", 8000, 1, 1_000_000);
 
-    @ConfigValue(name = "Tank Retain Fluids", comment = "Whether the Fluid Tank retains its contents after being broken")
-    public static boolean tankRetainFluids = true;
-    @ConfigValue(name = "Create Retain Items", comment = "Whether the Crate retains its contents after being broken")
-    public static boolean crateRetainItems = true;
+    private static final ModConfigSpec.IntValue COMBUSTION_ENGINE_FLUID_CAPACITY = BUILDER
+            .comment("燃烧引擎流体容量 (mB)")
+            .defineInRange("combustionEngineFluidCapacity", 2000, 1, 100_000);
 
-    @ConfigValue(name = "Redstone Engine Energy Capacity", comment = "The maximum amount of energy a redstone engine can store", category = "capacity.energy")
-    public static int redstoneEngineEnergyCapacity = 1000;
-    @ConfigValue(name = "Stirling Engine Energy Capacity", comment = "The maximum amount of energy a stirling engine can store", category = "capacity.energy")
-    public static int stirlingEngineEnergyCapacity = 5000;
-    @ConfigValue(name = "Combustion Engine Energy Capacity", comment = "The maximum amount of energy a combustion engine can store", category = "capacity.energy")
-    public static int combustionEngineEnergyCapacity = 10_000;
+    // === Energy ===
+    private static final ModConfigSpec.IntValue REDSTONE_ENGINE_ENERGY_CAPACITY = BUILDER
+            .comment("红石引擎能量容量")
+            .defineInRange("redstoneEngineEnergyCapacity", 1000, 1, 1_000_000);
 
-    @ConfigValue(name = "Redstone Engine Energy Production", comment = "The amount of energy a redstone engine produces", category = "production.energy")
+    private static final ModConfigSpec.IntValue STIRLING_ENGINE_ENERGY_CAPACITY = BUILDER
+            .comment("斯特林引擎能量容量")
+            .defineInRange("stirlingEngineEnergyCapacity", 5000, 1, 1_000_000);
+
+    private static final ModConfigSpec.IntValue COMBUSTION_ENGINE_ENERGY_CAPACITY = BUILDER
+            .comment("燃烧引擎能量容量")
+            .defineInRange("combustionEngineEnergyCapacity", 10000, 1, 10_000_000);
+
+    private static final ModConfigSpec.IntValue REDSTONE_ENGINE_ENERGY_PRODUCTION = BUILDER
+            .comment("红石引擎每tick能量产出")
+            .defineInRange("redstoneEngineEnergyProduction", 1, 0, 10000);
+
+    private static final ModConfigSpec.IntValue STIRLING_ENGINE_ENERGY_PRODUCTION = BUILDER
+            .comment("斯特林引擎每tick能量产出")
+            .defineInRange("stirlingEngineEnergyProduction", 5, 0, 10000);
+
+    private static final ModConfigSpec.IntValue COMBUSTION_ENGINE_ENERGY_PRODUCTION = BUILDER
+            .comment("燃烧引擎每tick能量产出")
+            .defineInRange("combustionEngineEnergyProduction", 20, 0, 100000);
+
+    // === Items ===
+    private static final ModConfigSpec.IntValue CRATE_ITEM_CAPACITY = BUILDER
+            .comment("板条箱容量")
+            .defineInRange("crateItemCapacity", 4096, 1, 1_000_000);
+
+    private static final ModConfigSpec.BooleanValue TANK_RETAIN_FLUIDS = BUILDER
+            .comment("破坏储罐时保留流体")
+            .define("tankRetainFluids", true);
+
+    private static final ModConfigSpec.BooleanValue CRATE_RETAIN_ITEMS = BUILDER
+            .comment("破坏板条箱时保留物品")
+            .define("crateRetainItems", true);
+
+    // === Pipe Speeds (blocks per second) ===
+    private static final ModConfigSpec.DoubleValue BASIC_PIPE_SPEED = BUILDER
+            .comment("基础管道速度 (每秒通过多少个管道)",
+                     "圆石/石/石英/砂岩/铁/粘土管道",
+                     "默认: 0.2 = 5秒通过1段管道")
+            .defineInRange("basicPipeSpeed", 0.2, 0.01, 20.0);
+
+    private static final ModConfigSpec.DoubleValue WOODEN_PIPE_SPEED = BUILDER
+            .comment("木质管道速度 (每秒通过多少个管道)",
+                     "默认: 0.25 = 4秒通过1段管道")
+            .defineInRange("woodenPipeSpeed", 0.25, 0.01, 20.0);
+
+    private static final ModConfigSpec.DoubleValue GOLD_PIPE_SPEED = BUILDER
+            .comment("金质管道速度 (每秒通过多少个管道)",
+                     "默认: 0.4 = 2.5秒通过1段管道")
+            .defineInRange("goldPipeSpeed", 0.4, 0.01, 20.0);
+
+    private static final ModConfigSpec.DoubleValue DIAMOND_PIPE_SPEED = BUILDER
+            .comment("钻石管道速度 (每秒通过多少个管道)",
+                     "默认: 0.3 = 3.3秒通过1段管道")
+            .defineInRange("diamondPipeSpeed", 0.3, 0.01, 20.0);
+
+    private static final ModConfigSpec.DoubleValue VOID_PIPE_SPEED = BUILDER
+            .comment("虚空管道速度 (每秒通过多少个管道)",
+                     "默认: 1.0 = 1秒销毁物品")
+            .defineInRange("voidPipeSpeed", 1.0, 0.01, 20.0);
+
+    static final ModConfigSpec SPEC = BUILDER.build();
+
+    // === Runtime values (updated on config load/reload) ===
+    public static int tankCapacity;
+    public static int combustionEngineFluidCapacity;
+    public static int redstoneEngineEnergyCapacity;
+    public static int stirlingEngineEnergyCapacity;
+    public static int combustionEngineEnergyCapacity;
     public static int redstoneEngineEnergyProduction;
-    @ConfigValue(name = "Stirling Engine Energy Production", comment = "The amount of energy a stirling engine produces", category = "production.energy")
     public static int stirlingEngineEnergyProduction;
-    @ConfigValue(name = "Combustion Engine Energy Production", comment = "The amount of energy a combustion engine produces", category = "production.energy")
     public static int combustionEngineEnergyProduction;
+    public static int crateItemCapacity;
+    public static boolean tankRetainFluids;
+    public static boolean crateRetainItems;
+    public static double basicPipeSpeed;
+    public static double woodenPipeSpeed;
+    public static double goldPipeSpeed;
+    public static double diamondPipeSpeed;
+    public static double voidPipeSpeed;
 
-    @ConfigValue(name = "Crate Item Capacity", comment = "The maximum amount of items the crate can store", category = "capacity.items")
-    public static int crateItemCapacity = 4096;
+    @SubscribeEvent
+    static void onLoad(ModConfigEvent.Loading event) {
+        if (event.getConfig().getSpec() == SPEC) {
+            sync();
+        }
+    }
 
-    // === Pipe Transfer Speeds (per tick, item moves when progress >= 1.0) ===
-    @ConfigValue(name = "Basic Pipe Speed", comment = "Transfer speed for basic pipes (cobblestone, stone, quartz, sandstone, iron, clay). 0.01 = 5 seconds per pipe", category = "pipes.speed")
-    public static float basicPipeSpeed = 0.01f;
+    @SubscribeEvent
+    static void onReload(ModConfigEvent.Reloading event) {
+        if (event.getConfig().getSpec() == SPEC) {
+            sync();
+        }
+    }
 
-    @ConfigValue(name = "Wooden Pipe Speed", comment = "Transfer speed for wooden extracting pipes. 0.0125 = 4 seconds per pipe", category = "pipes.speed")
-    public static float woodenPipeSpeed = 0.0125f;
-
-    @ConfigValue(name = "Gold Pipe Speed", comment = "Transfer speed for gold pipes (fast). 0.02 = 2.5 seconds per pipe", category = "pipes.speed")
-    public static float goldPipeSpeed = 0.02f;
-
-    @ConfigValue(name = "Diamond Pipe Speed", comment = "Transfer speed for diamond extracting pipes. 0.015 = 3.3 seconds per pipe", category = "pipes.speed")
-    public static float diamondPipeSpeed = 0.015f;
-
-    @ConfigValue(name = "Void Pipe Speed", comment = "Transfer speed for void pipes (destroys items). 0.05 = 1 second", category = "pipes.speed")
-    public static float voidPipeSpeed = 0.05f;
+    private static void sync() {
+        tankCapacity = TANK_CAPACITY.get();
+        combustionEngineFluidCapacity = COMBUSTION_ENGINE_FLUID_CAPACITY.get();
+        redstoneEngineEnergyCapacity = REDSTONE_ENGINE_ENERGY_CAPACITY.get();
+        stirlingEngineEnergyCapacity = STIRLING_ENGINE_ENERGY_CAPACITY.get();
+        combustionEngineEnergyCapacity = COMBUSTION_ENGINE_ENERGY_CAPACITY.get();
+        redstoneEngineEnergyProduction = REDSTONE_ENGINE_ENERGY_PRODUCTION.get();
+        stirlingEngineEnergyProduction = STIRLING_ENGINE_ENERGY_PRODUCTION.get();
+        combustionEngineEnergyProduction = COMBUSTION_ENGINE_ENERGY_PRODUCTION.get();
+        crateItemCapacity = CRATE_ITEM_CAPACITY.get();
+        tankRetainFluids = TANK_RETAIN_FLUIDS.get();
+        crateRetainItems = CRATE_RETAIN_ITEMS.get();
+        basicPipeSpeed = BASIC_PIPE_SPEED.get();
+        woodenPipeSpeed = WOODEN_PIPE_SPEED.get();
+        goldPipeSpeed = GOLD_PIPE_SPEED.get();
+        diamondPipeSpeed = DIAMOND_PIPE_SPEED.get();
+        voidPipeSpeed = VOID_PIPE_SPEED.get();
+    }
 }
