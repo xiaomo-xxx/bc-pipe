@@ -2,9 +2,7 @@ package com.thepigcat.buildcraft.content.blockentities;
 
 import com.thepigcat.buildcraft.BCConfig;
 import com.thepigcat.buildcraft.BuildcraftLegacy;
-import com.thepigcat.buildcraft.PipesRegistry;
 import com.thepigcat.buildcraft.api.blockentities.PipeBlockEntity;
-import com.thepigcat.buildcraft.api.pipes.Pipe;
 import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
 import com.thepigcat.buildcraft.networking.SyncPipeMovementPayload;
 import com.thepigcat.buildcraft.registries.BCBlockEntities;
@@ -35,6 +33,9 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     public float movement;
     public float lastMovement;
 
+    // Track how many items each direction has received (for round-robin splitting)
+    private final Map<Direction, Integer> itemsSent = new EnumMap<>(Direction.class);
+
     public ItemPipeBE(BlockPos pos, BlockState blockState) {
         this(BCBlockEntities.ITEM_PIPE.get(), pos, blockState);
     }
@@ -45,11 +46,14 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
             @Override
             protected void onContentsChanged(int slot) {
                 setChanged();
-                if (!level.isClientSide()) {
+                if (level != null && !level.isClientSide()) {
                     level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
                 }
             }
         };
+        for (Direction d : Direction.values()) {
+            itemsSent.put(d, 0);
+        }
     }
 
     @Override
@@ -57,65 +61,136 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         return Capabilities.ItemHandler.BLOCK;
     }
 
-    public void tick() {
-        // handle item transmission
-        if (!level.isClientSide() && this.movement >= 1f) {
-            if (to != null) {
-                IItemHandler insertingHandler = capabilityCaches.get(to).getCapability();
-                if (insertingHandler != null) {
-                    ItemStack pipeContent = insertingHandler.getStackInSlot(0);
+    /**
+     * Get all valid output directions (excluding the input direction and directions without handlers)
+     */
+    protected List<Direction> getValidOutputs() {
+        List<Direction> outputs = new ArrayList<>();
+        Direction inputDir = this.from;
+        ItemStack stack = itemHandler.getStackInSlot(0);
 
-                    if (!(level.getBlockEntity(worldPosition.relative(to)) instanceof ItemPipeBE)) {
-                        pipeContent = ItemStack.EMPTY;
-                    }
-
-                    if (pipeContent.isEmpty()) {
-                        ItemStack remainder = insertItems(insertingHandler);
-                        BuildcraftLegacy.LOGGER.debug("remainder: {}", remainder);
-                        this.itemHandler.insertItem(0, remainder, false);
-
-                        ItemPipeBE blockEntity = BlockUtils.getBE(ItemPipeBE.class, level, worldPosition.relative(this.to));
-
-                        if (blockEntity != null) {
-                            moveItemForward(blockEntity);
-                        }
-
-                        if (!remainder.isEmpty()) {
-                            moveItemBackward();
-                        }
-                    } else {
-                        moveItemBackward();
-                    }
+        for (Direction dir : directions) {
+            if (dir == inputDir) continue;
+            BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(dir);
+            if (cache != null && cache.getCapability() != null) {
+                // Check if this output can accept our item
+                if (canInsertTo(cache.getCapability(), stack)) {
+                    outputs.add(dir);
                 }
-
             }
+        }
+        return outputs;
+    }
 
+    /**
+     * Check if an item handler can accept a given item
+     */
+    protected boolean canInsertTo(IItemHandler handler, ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        for (int i = 0; i < handler.getSlots(); i++) {
+            ItemStack remaining = handler.insertItem(i, stack, true); // simulate
+            if (remaining.getCount() < stack.getCount()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Choose the best output direction. Prefer direction that has matching items
+     * for compact storage, otherwise round-robin for even distribution.
+     */
+    protected Direction chooseBestOutput(List<Direction> outputs, ItemStack toSend) {
+        if (outputs.isEmpty()) return null;
+        if (outputs.size() == 1) return outputs.getFirst();
+
+        // First, try to find a destination that already has matching items
+        for (Direction dir : outputs) {
+            BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(dir);
+            if (cache == null) continue;
+            IItemHandler handler = cache.getCapability();
+            if (handler == null) continue;
+            for (int i = 0; i < handler.getSlots(); i++) {
+                ItemStack existing = handler.getStackInSlot(i);
+                if (!existing.isEmpty() && ItemStack.isSameItemSameComponents(existing, toSend)) {
+                    return dir;
+                }
+            }
         }
 
-        if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
-                this.lastMovement = this.movement;
-                // Use pipe's configured transfer speed
-                float speed = getTransferSpeed();
-                this.movement += speed;
+        // No matching items found, use round-robin (pick least-used direction)
+        Direction best = outputs.getFirst();
+        int minSent = itemsSent.getOrDefault(best, 0);
+        for (Direction dir : outputs) {
+            int sent = itemsSent.getOrDefault(dir, 0);
+            if (sent < minSent) {
+                minSent = sent;
+                best = dir;
+            }
+        }
+        return best;
+    }
 
-                if (!level.isClientSide()) {
-                    BlockCapabilityCache<IItemHandler, Direction> fromCache = this.capabilityCaches.get(from);
-                    BlockCapabilityCache<IItemHandler, Direction> toCache = this.capabilityCaches.get(to);
-                    if (toCache == null || toCache.getCapability() == null) {
-                        if (fromCache == null || fromCache.getCapability() == null) {
-                            this.lastMovement = 0;
-                            this.movement = 0;
-                            this.setTo(null);
-                            this.setFrom(null);
+    public void tick() {
+        if (level.isClientSide()) return;
 
-                            PacketDistributor.sendToAllPlayers(new SyncPipeDirectionPayload(worldPosition, Optional.empty(), Optional.empty()));
-                            PacketDistributor.sendToAllPlayers(new SyncPipeMovementPayload(worldPosition, this.movement, this.lastMovement));
-                        } else {
-                            moveItemBackward(1 - this.lastMovement, 1 - this.movement);
+        // Item has reached the end of its movement through this pipe
+        if (this.movement >= 1f) {
+            ItemStack stack = itemHandler.getStackInSlot(0);
+            if (!stack.isEmpty()) {
+                List<Direction> outputs = getValidOutputs();
+                Direction bestOutput = chooseBestOutput(outputs, stack);
+
+                if (bestOutput != null) {
+                    IItemHandler targetHandler = capabilityCaches.get(bestOutput).getCapability();
+                    ItemStack remainder = ItemHandlerHelper.insertItem(targetHandler, stack, false);
+
+                    // Track items sent to this direction
+                    itemsSent.merge(bestOutput, stack.getCount() - remainder.getCount(), Integer::sum);
+
+                    if (remainder.isEmpty()) {
+                        itemHandler.setStackInSlot(0, ItemStack.EMPTY);
+
+                        // Move item visual to next pipe or stop
+                        ItemPipeBE nextPipe = BlockUtils.getBE(ItemPipeBE.class, level, worldPosition.relative(bestOutput));
+                        if (nextPipe != null) {
+                            nextPipe.setFrom(bestOutput.getOpposite());
+                            nextPipe.itemHandler.setStackInSlot(0, stack);
+                            nextPipe.lastMovement = 0;
+                            nextPipe.movement = 0;
+
+                            // Pick next pipe's output
+                            List<Direction> nextOutputs = nextPipe.getValidOutputs();
+                            Direction nextTo = nextPipe.chooseBestOutput(nextOutputs, stack);
+                            if (nextTo != null) {
+                                nextPipe.setTo(nextTo);
+                            } else {
+                                nextPipe.setTo(nextPipe.from);
+                            }
+
+                            PacketDistributor.sendToAllPlayers(new SyncPipeMovementPayload(nextPipe.getBlockPos(), 0, 0));
+                            PacketDistributor.sendToAllPlayers(new SyncPipeDirectionPayload(nextPipe.getBlockPos(),
+                                    Optional.ofNullable(nextPipe.from), Optional.ofNullable(nextPipe.to)));
                         }
+                    } else {
+                        // Partial insert - keep remainder in pipe
+                        itemHandler.setStackInSlot(0, remainder);
+                        moveItemBackward();
                     }
+                } else {
+                    // No valid outputs, bounce back
+                    moveItemBackward();
                 }
+            }
+            this.lastMovement = 0;
+            this.movement = 0;
+        }
 
+        // Advance movement if item is in pipe
+        if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
+            this.lastMovement = this.movement;
+            float speed = getTransferSpeed();
+            this.movement += speed;
         } else {
             lastMovement = 0;
             movement = 0;
@@ -129,6 +204,18 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
 
     public void setTo(Direction to) {
         this.to = to;
+    }
+
+    protected void moveItemBackward() {
+        Direction oldTo = this.to;
+        this.to = from;
+        this.from = oldTo;
+        this.lastMovement = 0;
+        this.movement = 0;
+
+        PacketDistributor.sendToAllPlayers(new SyncPipeMovementPayload(worldPosition, this.movement, this.lastMovement));
+        PacketDistributor.sendToAllPlayers(new SyncPipeDirectionPayload(worldPosition,
+                Optional.ofNullable(from), Optional.ofNullable(this.to)));
     }
 
     public Direction getFrom() {
@@ -159,54 +246,7 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
             blocksPerSecond = BCConfig.basicPipeSpeed;
         }
 
-        // Convert blocks/sec to per-tick movement (20 ticks per second)
         return (float) (blocksPerSecond / 20.0);
-    }
-
-    private void moveItemForward(ItemPipeBE blockEntity) {
-        Set<Direction> directions = new HashSet<>(blockEntity.directions);
-        directions.remove(to.getOpposite());
-
-        blockEntity.setFrom(to.getOpposite());
-
-        if (!directions.isEmpty()) {
-            int dirIndex = level.random.nextInt(0, directions.size());
-            blockEntity.setTo(directions.stream().toList().get(dirIndex));
-        } else {
-            blockEntity.setTo(blockEntity.from);
-        }
-
-        blockEntity.lastMovement = Math.abs(1 - this.lastMovement);
-        blockEntity.movement = Math.abs(1 - this.movement);
-
-        PacketDistributor.sendToAllPlayers(new SyncPipeMovementPayload(blockEntity.getBlockPos(), blockEntity.movement, blockEntity.lastMovement));
-        PacketDistributor.sendToAllPlayers(new SyncPipeDirectionPayload(blockEntity.getBlockPos(), Optional.ofNullable(blockEntity.from), Optional.ofNullable(blockEntity.to)));
-    }
-
-    private void moveItemBackward() {
-        moveItemBackward(0, 0);
-    }
-
-    private void moveItemBackward(float lastMovement, float movement) {
-        Direction to = this.to;
-        this.setTo(from);
-        this.setFrom(to);
-        this.lastMovement = lastMovement;
-        this.movement = movement;
-
-        PacketDistributor.sendToAllPlayers(new SyncPipeMovementPayload(worldPosition, this.movement, this.lastMovement));
-
-        PacketDistributor.sendToAllPlayers(new SyncPipeDirectionPayload(worldPosition, Optional.ofNullable(from), Optional.ofNullable(this.to)));
-    }
-
-    /**
-     * @return remainder
-     */
-    private ItemStack insertItems(IItemHandler insertingHandler) {
-        // Get stack in pipe (only simulated)
-        ItemStack toInsert = itemHandler.extractItem(0, this.itemHandler.getSlotLimit(0), false);
-
-        return ItemHandlerHelper.insertItem(insertingHandler, toInsert, false);
     }
 
     public IItemHandler getItemHandler(Direction direction) {
@@ -220,25 +260,21 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
-
         this.itemHandler.deserializeNBT(registries, tag.getCompound("item_handler"));
-
         int toIndex = tag.getInt("to");
         if (toIndex != -1) {
-            this.setTo(Direction.values()[toIndex]);
+            this.to = Direction.values()[toIndex];
         }
         int fromIndex = tag.getInt("from");
         if (fromIndex != -1) {
-            this.setFrom(Direction.values()[fromIndex]);
+            this.from = Direction.values()[fromIndex];
         }
     }
 
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
-
         tag.put("item_handler", this.itemHandler.serializeNBT(registries));
-
         tag.putInt("to", to != null ? to.ordinal() : -1);
         tag.putInt("from", from != null ? from.ordinal() : -1);
     }
