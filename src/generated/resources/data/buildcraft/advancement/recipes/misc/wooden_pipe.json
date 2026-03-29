@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "buildcraft:wooden_pipe"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    },
+    "has_wooden_pipe": {
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:barrier"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_wooden_pipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "buildcraft:wooden_pipe"
+    ]
+  }
+}

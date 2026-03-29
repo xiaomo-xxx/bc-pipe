@@ -7,12 +7,16 @@ import com.thepigcat.buildcraft.tags.BCTags;
 import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.critereon.InventoryChangeTrigger;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.*;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
 import net.neoforged.neoforge.common.Tags;
 import org.jetbrains.annotations.Nullable;
@@ -41,9 +45,29 @@ public class BCRecipeProvider extends net.minecraft.data.recipes.RecipeProvider 
         gearRecipe(recipeOutput, Tags.Items.INGOTS_GOLD, BCTags.Items.IRON_GEAR, BCItems.GOLD_GEAR);
         gearRecipe(recipeOutput, Tags.Items.GEMS_DIAMOND, BCTags.Items.GOLD_GEAR, BCItems.DIAMOND_GEAR);
 
-//        pipeRecipe(recipeOutput, ItemTags.PLANKS, BCBlocks.WOODEN_ITEM_PIPE);
-//        pipeRecipe(recipeOutput, Tags.Items.COBBLESTONES, BCBlocks.COBBLESTONE_ITEM_PIPE);
+        // === Pipe Recipes ===
+        // Wooden pipe (extracting) - planks + glass
+        dynamicPipeRecipe(recipeOutput, "wooden_pipe", Ingredient.of(ItemTags.PLANKS), 8);
+        // Cobblestone pipe - cobblestone + glass
+        dynamicPipeRecipe(recipeOutput, "cobblestone_pipe", Ingredient.of(Tags.Items.COBBLESTONES), 8);
+        // Stone pipe - stone + glass
+        dynamicPipeRecipe(recipeOutput, "stone_pipe", Ingredient.of(Items.STONE), 8);
+        // Quartz pipe - quartz + glass
+        dynamicPipeRecipe(recipeOutput, "quartz_pipe", Ingredient.of(Items.QUARTZ), 8);
+        // Sandstone pipe - sandstone + glass
+        dynamicPipeRecipe(recipeOutput, "sandstone_pipe", Ingredient.of(Items.SANDSTONE), 8);
+        // Gold pipe - gold ingot + glass
+        dynamicPipeRecipe(recipeOutput, "gold_pipe", Ingredient.of(Tags.Items.INGOTS_GOLD), 8);
+        // Iron pipe - iron ingot + glass
+        dynamicPipeRecipe(recipeOutput, "iron_pipe", Ingredient.of(Tags.Items.INGOTS_IRON), 8);
+        // Clay pipe - clay ball + glass
+        dynamicPipeRecipe(recipeOutput, "clay_pipe", Ingredient.of(Items.CLAY_BALL), 8);
+        // Diamond pipe - diamond + glass
+        dynamicPipeRecipe(recipeOutput, "diamond_pipe", Ingredient.of(Tags.Items.GEMS_DIAMOND), 8);
+        // Void pipe - obsidian + glass
+        dynamicPipeRecipe(recipeOutput, "void_pipe", Ingredient.of(Items.OBSIDIAN), 8);
 
+        // === Engine Recipes ===
         engineRecipe(recipeOutput, ItemTags.PLANKS, BCTags.Items.WOODEN_GEAR, BCBlocks.REDSTONE_ENGINE);
         engineRecipe(recipeOutput, Tags.Items.COBBLESTONES, BCTags.Items.STONE_GEAR, BCBlocks.STIRLING_ENGINE);
         engineRecipe(recipeOutput, Tags.Items.INGOTS_IRON, BCTags.Items.IRON_GEAR, BCBlocks.COMBUSTION_ENGINE);
@@ -69,6 +93,28 @@ public class BCRecipeProvider extends net.minecraft.data.recipes.RecipeProvider 
                 .requires(BCBlocks.TANK)
                 .unlockedBy("has_tank", has(BCBlocks.TANK))
                 .save(recipeOutput, BuildcraftLegacy.rl("tank_reset"));
+    }
+
+    /**
+     * Creates a pipe recipe using the dynamically registered pipe item.
+     * Pattern: M M = material, glass is implicit
+     * Output: 8 pipes
+     */
+    private void dynamicPipeRecipe(RecipeOutput recipeOutput, String pipeId, Ingredient material, int count) {
+        ResourceLocation pipeRL = BuildcraftLegacy.rl(pipeId);
+        Item pipeItem = BuiltInRegistries.ITEM.get(pipeRL);
+        if (pipeItem == Items.AIR) return; // Pipe not registered
+
+        // Get first item from ingredient for unlock criterion
+        ItemStack[] items = material.getItems();
+        ItemLike unlockItem = items.length > 0 ? items[0].getItem() : Items.STONE;
+
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, pipeItem, count)
+                .pattern("MGM")
+                .define('M', material)
+                .define('G', Tags.Items.GLASS_BLOCKS)
+                .unlockedBy("has_" + pipeId, has(unlockItem))
+                .save(recipeOutput, BuildcraftLegacy.rl(pipeId));
     }
 
     public static Criterion<InventoryChangeTrigger.TriggerInstance> has(TagKey<Item> tag) {

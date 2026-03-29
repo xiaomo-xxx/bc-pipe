@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": {
+      "tag": "c:glass_blocks"
+    },
+    "M": {
+      "item": "minecraft:sandstone"
+    }
+  },
+  "pattern": [
+    "MGM"
+  ],
+  "result": {
+    "count": 8,
+    "id": "buildcraft:sandstone_pipe"
+  }
+}

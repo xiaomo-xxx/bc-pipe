@@ -2,6 +2,7 @@ package com.thepigcat.buildcraft.datagen;
 
 import com.thepigcat.buildcraft.BuildcraftLegacy;
 import com.thepigcat.buildcraft.datagen.assets.BCEnUSLangProvider;
+import com.thepigcat.buildcraft.datagen.assets.BCZhCNLangProvider;
 import com.thepigcat.buildcraft.datagen.assets.BCBlockStateProvider;
 import com.thepigcat.buildcraft.datagen.assets.BCItemModelProvider;
 import com.thepigcat.buildcraft.datagen.data.BCBlockLootTableProvider;
@@ -34,6 +35,7 @@ public class DataGatherer {
         generator.addProvider(event.includeClient(), new BCItemModelProvider(packOutput, existingFileHelper));
         generator.addProvider(event.includeClient(), new BCBlockStateProvider(packOutput, existingFileHelper));
         generator.addProvider(event.includeClient(), new BCEnUSLangProvider(packOutput));
+        generator.addProvider(event.includeClient(), new BCZhCNLangProvider(packOutput));
 
         BCTagProvider.createTagProviders(generator, packOutput, lookupProvider, existingFileHelper, event.includeServer());
         generator.addProvider(event.includeServer(), new BCDatapackRegistryProvider(packOutput, lookupProvider));
