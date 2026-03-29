@@ -44,17 +44,17 @@ public class BCEnUSLangProvider extends LanguageProvider {
 
         add("itemGroup.buildcraft.bc_tab", "Buildcraft");
 
-        // Pipe display names (dynamically registered)
-        add("item.buildcraft.wooden_pipe", "Wooden Pipe");
-        add("item.buildcraft.cobblestone_pipe", "Cobblestone Pipe");
-        add("item.buildcraft.stone_pipe", "Stone Pipe");
-        add("item.buildcraft.quartz_pipe", "Quartz Pipe");
-        add("item.buildcraft.sandstone_pipe", "Sandstone Pipe");
-        add("item.buildcraft.gold_pipe", "Gold Pipe");
-        add("item.buildcraft.iron_pipe", "Iron Pipe");
-        add("item.buildcraft.clay_pipe", "Clay Pipe");
-        add("item.buildcraft.diamond_pipe", "Diamond Pipe");
-        add("item.buildcraft.void_pipe", "Void Pipe");
+        // Pipe display names (dynamically registered - use block. prefix for BlockItem)
+        add("block.buildcraft.wooden_pipe", "Wooden Pipe");
+        add("block.buildcraft.cobblestone_pipe", "Cobblestone Pipe");
+        add("block.buildcraft.stone_pipe", "Stone Pipe");
+        add("block.buildcraft.quartz_pipe", "Quartz Pipe");
+        add("block.buildcraft.sandstone_pipe", "Sandstone Pipe");
+        add("block.buildcraft.gold_pipe", "Gold Pipe");
+        add("block.buildcraft.iron_pipe", "Iron Pipe");
+        add("block.buildcraft.clay_pipe", "Clay Pipe");
+        add("block.buildcraft.diamond_pipe", "Diamond Pipe");
+        add("block.buildcraft.void_pipe", "Void Pipe");
 
         addRedstoneSignalType(RedstoneBlockEntity.RedstoneSignalType.IGNORED, "Ignored");
         addRedstoneSignalType(RedstoneBlockEntity.RedstoneSignalType.LOW_SIGNAL, "Low Signal");

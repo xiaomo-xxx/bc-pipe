@@ -35,4 +35,20 @@ public final class BCConfig {
 
     @ConfigValue(name = "Crate Item Capacity", comment = "The maximum amount of items the crate can store", category = "capacity.items")
     public static int crateItemCapacity = 4096;
+
+    // === Pipe Transfer Speeds (per tick, item moves when progress >= 1.0) ===
+    @ConfigValue(name = "Basic Pipe Speed", comment = "Transfer speed for basic pipes (cobblestone, stone, quartz, sandstone, iron, clay). 0.01 = 5 seconds per pipe", category = "pipes.speed")
+    public static float basicPipeSpeed = 0.01f;
+
+    @ConfigValue(name = "Wooden Pipe Speed", comment = "Transfer speed for wooden extracting pipes. 0.0125 = 4 seconds per pipe", category = "pipes.speed")
+    public static float woodenPipeSpeed = 0.0125f;
+
+    @ConfigValue(name = "Gold Pipe Speed", comment = "Transfer speed for gold pipes (fast). 0.02 = 2.5 seconds per pipe", category = "pipes.speed")
+    public static float goldPipeSpeed = 0.02f;
+
+    @ConfigValue(name = "Diamond Pipe Speed", comment = "Transfer speed for diamond extracting pipes. 0.015 = 3.3 seconds per pipe", category = "pipes.speed")
+    public static float diamondPipeSpeed = 0.015f;
+
+    @ConfigValue(name = "Void Pipe Speed", comment = "Transfer speed for void pipes (destroys items). 0.05 = 1 second", category = "pipes.speed")
+    public static float voidPipeSpeed = 0.05f;
 }

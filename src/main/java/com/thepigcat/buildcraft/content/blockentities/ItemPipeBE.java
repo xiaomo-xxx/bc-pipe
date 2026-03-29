@@ -1,5 +1,6 @@
 package com.thepigcat.buildcraft.content.blockentities;
 
+import com.thepigcat.buildcraft.BCConfig;
 import com.thepigcat.buildcraft.BuildcraftLegacy;
 import com.thepigcat.buildcraft.PipesRegistry;
 import com.thepigcat.buildcraft.api.blockentities.PipeBlockEntity;
@@ -139,16 +140,28 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     }
 
     /**
-     * Gets the transfer speed for this pipe from the pipe registry.
-     * Falls back to 0.01f if the pipe is not found.
+     * Gets the transfer speed for this pipe from the config.
+     * Falls back to the pipe's JSON value if not a known type.
      */
     protected float getTransferSpeed() {
         String pipeId = this.getBlockState().getBlock().builtInRegistryHolder().key().location().getPath();
-        Pipe pipe = PipesRegistry.PIPES.get(pipeId);
-        if (pipe != null) {
-            return pipe.transferSpeed();
+
+        // Use config values for known pipe categories
+        if (pipeId.contains("gold")) {
+            return BCConfig.goldPipeSpeed;
         }
-        return 0.01f;
+        if (pipeId.contains("void")) {
+            return BCConfig.voidPipeSpeed;
+        }
+        if (pipeId.contains("diamond")) {
+            return BCConfig.diamondPipeSpeed;
+        }
+        if (pipeId.contains("wooden")) {
+            return BCConfig.woodenPipeSpeed;
+        }
+
+        // All other pipes use basic speed
+        return BCConfig.basicPipeSpeed;
     }
 
     private void moveItemForward(ItemPipeBE blockEntity) {
