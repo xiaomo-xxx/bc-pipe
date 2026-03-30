@@ -76,6 +76,12 @@ public final class BCPipes {
             BuildcraftLegacy.rl("block/void_pipe")
     ), Either.right(ResourceLocation.parse("obsidian")), Ingredient.of(Items.OBSIDIAN), List.of(BlockTags.MINEABLE_WITH_PICKAXE), 9);
 
+    // Emerald pipes - fast extracting (faster than wooden/diamond)
+    public static final PipeHolder EMERALD = HELPER.registerPipe("emerald", BCPipeTypes.EXTRACTING, "Emerald Pipe", 0.025f, List.of(
+            BuildcraftLegacy.rl("block/emerald_pipe"),
+            BuildcraftLegacy.rl("block/emerald_pipe_extracting")
+    ), Either.right(ResourceLocation.parse("emerald_block")), Ingredient.of(Tags.Items.GEMS_EMERALD), List.of(BlockTags.MINEABLE_WITH_PICKAXE), 10);
+
     public static void init() {
     }
 }

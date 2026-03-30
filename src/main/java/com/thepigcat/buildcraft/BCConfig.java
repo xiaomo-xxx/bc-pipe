@@ -83,6 +83,12 @@ public final class BCConfig {
                      "默认: 1.0 = 1秒销毁物品")
             .defineInRange("voidPipeSpeed", 1.0, 0.01, 20.0);
 
+    private static final ModConfigSpec.DoubleValue EMERALD_PIPE_SPEED = BUILDER
+            .comment("绿宝石管道速度 (每秒通过多少个管道)",
+                     "快速抽取管道",
+                     "默认: 0.5 = 2秒通过1段管道")
+            .defineInRange("emeraldPipeSpeed", 0.5, 0.01, 20.0);
+
     static final ModConfigSpec SPEC = BUILDER.build();
 
     // === Runtime values (updated on config load/reload) ===
@@ -102,6 +108,7 @@ public final class BCConfig {
     public static double goldPipeSpeed;
     public static double diamondPipeSpeed;
     public static double voidPipeSpeed;
+    public static double emeraldPipeSpeed;
 
     @SubscribeEvent
     static void onLoad(ModConfigEvent.Loading event) {
@@ -134,5 +141,6 @@ public final class BCConfig {
         goldPipeSpeed = GOLD_PIPE_SPEED.get();
         diamondPipeSpeed = DIAMOND_PIPE_SPEED.get();
         voidPipeSpeed = VOID_PIPE_SPEED.get();
+        emeraldPipeSpeed = EMERALD_PIPE_SPEED.get();
     }
 }

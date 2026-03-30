@@ -1,7 +1,0 @@
-{
-  "parent": "buildcraft:block/engine_base",
-  "textures": {
-    "side": "buildcraft:block/engine/redstone_engine_side",
-    "top": "buildcraft:block/engine/redstone_engine_top"
-  }
-}

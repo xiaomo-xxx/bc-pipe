@@ -65,6 +65,8 @@ public class BCRecipeProvider extends net.minecraft.data.recipes.RecipeProvider 
         dynamicPipeRecipe(recipeOutput, "diamond_pipe", Ingredient.of(Tags.Items.GEMS_DIAMOND), 8);
         // Void pipe - obsidian + glass
         dynamicPipeRecipe(recipeOutput, "void_pipe", Ingredient.of(Items.OBSIDIAN), 8);
+        // Emerald pipe - emerald + glass (fast extracting)
+        dynamicPipeRecipe(recipeOutput, "emerald_pipe", Ingredient.of(Tags.Items.GEMS_EMERALD), 8);
 
         ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, BCBlocks.CRATE)
                 .pattern("LSL")

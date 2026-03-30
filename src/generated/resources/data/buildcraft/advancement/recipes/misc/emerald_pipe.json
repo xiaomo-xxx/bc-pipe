@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_planks": {
+    "has_emerald_pipe": {
       "conditions": {
         "items": [
           {
-            "items": "#minecraft:planks"
+            "items": "minecraft:barrier"
           }
         ]
       },
@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "buildcraft:redstone_engine"
+        "recipe": "buildcraft:emerald_pipe"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
@@ -21,12 +21,12 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_planks"
+      "has_emerald_pipe"
     ]
   ],
   "rewards": {
     "recipes": [
-      "buildcraft:redstone_engine"
+      "buildcraft:emerald_pipe"
     ]
   }
 }
