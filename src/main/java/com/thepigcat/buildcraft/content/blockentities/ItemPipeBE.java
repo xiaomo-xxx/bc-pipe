@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -20,7 +21,6 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.*;
 
@@ -47,6 +47,7 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
             protected void onContentsChanged(int slot) {
                 setChanged();
                 if (level != null && !level.isClientSide()) {
+                    active = !getStackInSlot(0).isEmpty();
                     level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
                 }
             }
@@ -54,6 +55,34 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         for (Direction d : Direction.values()) {
             itemsSent.put(d, 0);
         }
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level instanceof ServerLevel) {
+            cacheTransferSpeed();
+        }
+    }
+
+    /**
+     * Cache transfer speed once at load, avoiding per-tick registry lookups.
+     */
+    protected void cacheTransferSpeed() {
+        String pipeId = this.getBlockState().getBlock().builtInRegistryHolder().key().location().getPath();
+        double blocksPerSecond;
+        if (pipeId.contains("gold")) {
+            blocksPerSecond = BCConfig.goldPipeSpeed;
+        } else if (pipeId.contains("void")) {
+            blocksPerSecond = BCConfig.voidPipeSpeed;
+        } else if (pipeId.contains("diamond")) {
+            blocksPerSecond = BCConfig.diamondPipeSpeed;
+        } else if (pipeId.contains("wooden")) {
+            blocksPerSecond = BCConfig.woodenPipeSpeed;
+        } else {
+            blocksPerSecond = BCConfig.basicPipeSpeed;
+        }
+        this.transferSpeed = (float) (blocksPerSecond / 20.0);
     }
 
     @Override
@@ -134,6 +163,9 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     public void tick() {
         if (level.isClientSide()) return;
 
+        // Fast path: skip all work if pipe has no item and isn't mid-movement
+        if (!active && this.movement <= 0f) return;
+
         // Item has reached the end of its movement through this pipe
         if (this.movement >= 1f) {
             ItemStack stack = itemHandler.getStackInSlot(0);
@@ -168,8 +200,8 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
                                 nextPipe.setTo(nextPipe.from);
                             }
 
-                            PacketDistributor.sendToAllPlayers(new SyncPipeMovementPayload(nextPipe.getBlockPos(), 0, 0));
-                            PacketDistributor.sendToAllPlayers(new SyncPipeDirectionPayload(nextPipe.getBlockPos(),
+                            sendToTracking(new SyncPipeMovementPayload(nextPipe.getBlockPos(), 0, 0));
+                            sendToTracking(new SyncPipeDirectionPayload(nextPipe.getBlockPos(),
                                     Optional.ofNullable(nextPipe.from), Optional.ofNullable(nextPipe.to)));
                         }
                     } else {
@@ -189,8 +221,7 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         // Advance movement if item is in pipe
         if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
             this.lastMovement = this.movement;
-            float speed = getTransferSpeed();
-            this.movement += speed;
+            this.movement += transferSpeed; // use cached speed
         } else {
             lastMovement = 0;
             movement = 0;
@@ -213,8 +244,8 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         this.lastMovement = 0;
         this.movement = 0;
 
-        PacketDistributor.sendToAllPlayers(new SyncPipeMovementPayload(worldPosition, this.movement, this.lastMovement));
-        PacketDistributor.sendToAllPlayers(new SyncPipeDirectionPayload(worldPosition,
+        sendToTracking(new SyncPipeMovementPayload(worldPosition, this.movement, this.lastMovement));
+        sendToTracking(new SyncPipeDirectionPayload(worldPosition,
                 Optional.ofNullable(from), Optional.ofNullable(this.to)));
     }
 
@@ -227,26 +258,12 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     }
 
     /**
-     * Gets the transfer speed as per-tick movement.
-     * Config value is "blocks per second", convert to per-tick (20 ticks/sec).
+     * Gets the cached transfer speed (blocks per tick).
+     * Speed is cached at load time to avoid per-tick registry lookups.
+     * Call cacheTransferSpeed() if config changes at runtime.
      */
     protected float getTransferSpeed() {
-        String pipeId = this.getBlockState().getBlock().builtInRegistryHolder().key().location().getPath();
-
-        double blocksPerSecond;
-        if (pipeId.contains("gold")) {
-            blocksPerSecond = BCConfig.goldPipeSpeed;
-        } else if (pipeId.contains("void")) {
-            blocksPerSecond = BCConfig.voidPipeSpeed;
-        } else if (pipeId.contains("diamond")) {
-            blocksPerSecond = BCConfig.diamondPipeSpeed;
-        } else if (pipeId.contains("wooden")) {
-            blocksPerSecond = BCConfig.woodenPipeSpeed;
-        } else {
-            blocksPerSecond = BCConfig.basicPipeSpeed;
-        }
-
-        return (float) (blocksPerSecond / 20.0);
+        return transferSpeed;
     }
 
     public IItemHandler getItemHandler(Direction direction) {

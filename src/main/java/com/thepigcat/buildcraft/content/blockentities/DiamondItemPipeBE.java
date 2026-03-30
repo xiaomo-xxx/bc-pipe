@@ -2,12 +2,13 @@ package com.thepigcat.buildcraft.content.blockentities;
 
 import com.thepigcat.buildcraft.registries.BCBlockEntities;
 import com.thepigcat.buildcraft.content.menus.DiamondPipeMenu;
+import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
+import com.thepigcat.buildcraft.networking.SyncPipeMovementPayload;
+import com.thepigcat.buildcraft.util.BlockUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -15,14 +16,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Diamond pipe with 6 filter sides (9 slots each = 54 total).
@@ -45,85 +48,86 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
 
     @Override
     public void tick() {
-        if (!level.isClientSide()) {
-            // Extraction logic for diamond pipe (every 10 ticks)
-            if (level.getGameTime() % 10 == 0 && itemHandler.getStackInSlot(0).isEmpty() && extracting != null) {
-                BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(this.extracting);
-                if (cache != null) {
-                    IItemHandler extractingHandler = cache.getCapability();
-                    if (extractingHandler != null) {
-                        for (int i = 0; i < extractingHandler.getSlots(); i++) {
-                            ItemStack extracted = extractingHandler.extractItem(i, 64, false);
-                            if (!extracted.isEmpty()) {
-                                ItemStack remainder = itemHandler.insertItem(0, extracted, false);
-                                if (!remainder.isEmpty()) {
-                                    extractingHandler.insertItem(i, remainder, false);
-                                }
-                                this.setFrom(this.extracting);
-                                break;
+        if (level.isClientSide()) return;
+
+        // Extraction logic for diamond pipe (every 10 ticks)
+        if (level.getGameTime() % 10 == 0 && itemHandler.getStackInSlot(0).isEmpty() && extracting != null) {
+            BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(this.extracting);
+            if (cache != null) {
+                IItemHandler extractingHandler = cache.getCapability();
+                if (extractingHandler != null) {
+                    for (int i = 0; i < extractingHandler.getSlots(); i++) {
+                        ItemStack extracted = extractingHandler.extractItem(i, 64, false);
+                        if (!extracted.isEmpty()) {
+                            ItemStack remainder = itemHandler.insertItem(0, extracted, false);
+                            if (!remainder.isEmpty()) {
+                                extractingHandler.insertItem(i, remainder, false);
                             }
+                            this.setFrom(this.extracting);
+                            break;
                         }
                     }
                 }
             }
+        }
 
-            // Movement logic
-            if (this.movement >= 1f) {
-                ItemStack stack = itemHandler.getStackInSlot(0);
-                if (!stack.isEmpty()) {
-                    List<Direction> filteredOutputs = getFilteredOutputs(stack);
-                    Direction bestOutput = chooseBestOutput(filteredOutputs, stack);
+        // Fast path: skip if pipe has no item and isn't mid-movement
+        if (!active && this.movement <= 0f) return;
 
-                    if (bestOutput != null) {
-                        IItemHandler targetHandler = capabilityCaches.get(bestOutput).getCapability();
-                        if (targetHandler != null) {
-                            ItemStack remainder = net.neoforged.neoforge.items.ItemHandlerHelper.insertItem(targetHandler, stack, false);
+        // Movement logic
+        if (this.movement >= 1f) {
+            ItemStack stack = itemHandler.getStackInSlot(0);
+            if (!stack.isEmpty()) {
+                List<Direction> filteredOutputs = getFilteredOutputs(stack);
+                Direction bestOutput = chooseBestOutput(filteredOutputs, stack);
 
-                            if (remainder.isEmpty()) {
-                                itemHandler.setStackInSlot(0, ItemStack.EMPTY);
+                if (bestOutput != null) {
+                    IItemHandler targetHandler = capabilityCaches.get(bestOutput).getCapability();
+                    if (targetHandler != null) {
+                        ItemStack remainder = ItemHandlerHelper.insertItem(targetHandler, stack, false);
 
-                                ItemPipeBE nextPipe = com.thepigcat.buildcraft.util.BlockUtils.getBE(ItemPipeBE.class, level, worldPosition.relative(bestOutput));
-                                if (nextPipe != null) {
-                                    nextPipe.setFrom(bestOutput.getOpposite());
-                                    nextPipe.itemHandler.insertItem(0, stack, false);
-                                    nextPipe.lastMovement = 0;
-                                    nextPipe.movement = 0;
+                        if (remainder.isEmpty()) {
+                            itemHandler.setStackInSlot(0, ItemStack.EMPTY);
 
-                                    List<Direction> nextOutputs = nextPipe.getValidOutputs();
-                                    Direction nextTo = nextPipe.chooseBestOutput(nextOutputs, stack);
-                                    if (nextTo != null) {
-                                        nextPipe.setTo(nextTo);
-                                    } else if (!nextOutputs.isEmpty()) {
-                                        nextPipe.setTo(nextOutputs.getFirst());
-                                    }
+                            ItemPipeBE nextPipe = BlockUtils.getBE(ItemPipeBE.class, level, worldPosition.relative(bestOutput));
+                            if (nextPipe != null) {
+                                nextPipe.setFrom(bestOutput.getOpposite());
+                                nextPipe.itemHandler.insertItem(0, stack, false);
+                                nextPipe.lastMovement = 0;
+                                nextPipe.movement = 0;
 
-                                    net.neoforged.neoforge.network.PacketDistributor.sendToAllPlayers(
-                                            new com.thepigcat.buildcraft.networking.SyncPipeMovementPayload(nextPipe.getBlockPos(), 0, 0));
-                                    net.neoforged.neoforge.network.PacketDistributor.sendToAllPlayers(
-                                            new com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload(nextPipe.getBlockPos(),
-                                                    java.util.Optional.ofNullable(nextPipe.from), java.util.Optional.ofNullable(nextPipe.to)));
+                                List<Direction> nextOutputs = nextPipe.getValidOutputs();
+                                Direction nextTo = nextPipe.chooseBestOutput(nextOutputs, stack);
+                                if (nextTo != null) {
+                                    nextPipe.setTo(nextTo);
+                                } else if (!nextOutputs.isEmpty()) {
+                                    nextPipe.setTo(nextOutputs.getFirst());
                                 }
-                            } else {
-                                itemHandler.setStackInSlot(0, remainder);
-                                moveItemBackward();
-                            }
-                        }
-                    } else {
-                        moveItemBackward();
-                    }
-                }
-                this.lastMovement = 0;
-                this.movement = 0;
-            }
 
-            // Advance movement
-            if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
-                this.lastMovement = this.movement;
-                this.movement += getTransferSpeed();
-            } else {
-                lastMovement = 0;
-                movement = 0;
+                                sendToTracking(new SyncPipeMovementPayload(nextPipe.getBlockPos(), 0, 0));
+                                sendToTracking(new SyncPipeDirectionPayload(nextPipe.getBlockPos(),
+                                        Optional.ofNullable(nextPipe.from), Optional.ofNullable(nextPipe.to)));
+                            }
+                        } else {
+                            itemHandler.setStackInSlot(0, remainder);
+                            moveItemBackward();
+                        }
+                    }
+                } else {
+                    moveItemBackward();
+                }
             }
+            this.lastMovement = 0;
+            this.movement = 0;
+        }
+
+        // Advance movement
+        if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
+            this.lastMovement = this.movement;
+            this.movement += transferSpeed; // use cached speed
+        } else {
+            lastMovement = 0;
+            movement = 0;
         }
     }
 

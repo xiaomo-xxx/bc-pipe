@@ -1,18 +1,16 @@
 package com.thepigcat.buildcraft.content.blockentities;
 
 import com.thepigcat.buildcraft.registries.BCBlockEntities;
-import com.thepigcat.buildcraft.util.BlockUtils;
 import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
-import com.thepigcat.buildcraft.networking.SyncPipeMovementPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,8 +21,10 @@ public class ExtractItemPipeBE extends ItemPipeBE {
 
     @Override
     public void tick() {
+        if (level.isClientSide()) return;
+
         // Extract items from the source container
-        if (!level.isClientSide() && level.getGameTime() % 10 == 0 && itemHandler.getStackInSlot(0).isEmpty()) {
+        if (level.getGameTime() % 10 == 0 && itemHandler.getStackInSlot(0).isEmpty()) {
             BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(this.extracting);
             if (cache != null) {
                 IItemHandler extractingHandler = cache.getCapability();
@@ -49,7 +49,7 @@ public class ExtractItemPipeBE extends ItemPipeBE {
                                 this.setTo(outputs.getFirst());
                             }
 
-                            PacketDistributor.sendToAllPlayers(new SyncPipeDirectionPayload(worldPosition,
+                            sendToTracking(new SyncPipeDirectionPayload(worldPosition,
                                     Optional.ofNullable(from), Optional.ofNullable(to)));
                             break;
                         }
@@ -58,7 +58,7 @@ public class ExtractItemPipeBE extends ItemPipeBE {
             }
         }
 
-        // Regular pipe movement logic
+        // Regular pipe movement logic (with early-return via parent tick)
         super.tick();
     }
 }

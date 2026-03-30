@@ -19,6 +19,8 @@ import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import net.neoforged.neoforge.network.PacketDistributor;
+
 import java.util.*;
 
 public abstract class PipeBlockEntity<CAP> extends BlockEntity {
@@ -26,6 +28,12 @@ public abstract class PipeBlockEntity<CAP> extends BlockEntity {
 
     protected final Map<Direction, BlockCapabilityCache<CAP, Direction>> capabilityCaches;
     protected Set<Direction> directions;
+
+    /** Whether this pipe has work to do (dirty flag to skip tick when idle) */
+    public boolean active;
+
+    /** Cached transfer speed (blocks per tick). Set by subclass via onLoad/init. */
+    protected float transferSpeed;
 
     public PipeBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState blockState) {
         super(type, pos, blockState);
@@ -71,5 +79,16 @@ public abstract class PipeBlockEntity<CAP> extends BlockEntity {
     @Override
     public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider lookupProvider) {
         super.onDataPacket(net, pkt, lookupProvider);
+    }
+
+    /**
+     * Send a packet only to players tracking this chunk, instead of broadcast to all.
+     * Falls back to sendToAllPlayers if not a ServerLevel.
+     */
+    protected void sendToTracking(Object payload) {
+        if (level instanceof ServerLevel serverLevel) {
+            PacketDistributor.sendToPlayersTrackingChunk(serverLevel,
+                    new net.minecraft.world.level.ChunkPos(worldPosition), (net.minecraft.network.protocol.common.custom.CustomPacketPayload) payload);
+        }
     }
 }

@@ -41,10 +41,11 @@ public class VoidItemPipeBE extends PipeBlockEntity<IItemHandler> {
     @Override
     public void tick() {
         if (!level.isClientSide()) {
-            // Destroy any item that enters the void pipe
+            // Only tick when there's actually an item to destroy
             if (!itemHandler.getStackInSlot(0).isEmpty()) {
                 itemHandler.setStackInSlot(0, ItemStack.EMPTY);
                 setChanged();
+                active = false;
             }
         }
     }
