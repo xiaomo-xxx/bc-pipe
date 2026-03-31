@@ -152,13 +152,30 @@ cd BuildCraft
 
 ---
 
-## 📋 兼容性
+## 📦 前置依赖
+
+> ⚠️ **必须安装以下 mod，否则游戏无法启动**
+
+| 依赖 | 版本要求 | 链接 |
+|------|----------|------|
+| **NeoForge** | ≥ 21.1.209 | [CurseForge](https://www.curseforge.com/minecraft/mc-mods/neoforge) / [Modrinth](https://modrinth.com/mod/neoforge) |
+| **Porting Dead Libs** | ≥ 1.1.7 | [GitHub](https://github.com/Porting-Dead-Mods/Porting-Dead-Libs) / [CurseForge](https://www.curseforge.com/minecraft/mc-mods/porting-dead-libs) |
+
+### 可选依赖
+
+| 依赖 | 用途 |
+|------|------|
+| **JEI** | 查看合成配方（不装不影响游玩） |
+
+---
+
+## 📋 环境要求
 
 | 项目 | 版本 |
 |------|------|
 | Minecraft | 1.21.1 |
 | NeoForge | ≥ 21.1.209 |
-| JEI | 19.21.0.247 |
+| Porting Dead Libs | ≥ 1.1.7 |
 | Java | 21 |
 
 ---
