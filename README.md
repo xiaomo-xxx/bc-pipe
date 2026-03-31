@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚙️ BuildCraft Legacy
+# ⚙️ BC-Pipe
 
 **经典 BuildCraft 管道系统 — 移植 NeoForge 1.21.1**
 
