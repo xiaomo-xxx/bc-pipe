@@ -57,7 +57,7 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
                 IItemHandler extractingHandler = cache.getCapability();
                 if (extractingHandler != null) {
                     for (int i = 0; i < extractingHandler.getSlots(); i++) {
-                        ItemStack extracted = extractingHandler.extractItem(i, 4, false);
+                        ItemStack extracted = extractingHandler.extractItem(i, 32, false);
                         if (!extracted.isEmpty()) {
                             ItemStack remainder = itemHandler.insertItem(0, extracted, false);
                             if (!remainder.isEmpty()) {
