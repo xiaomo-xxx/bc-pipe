@@ -88,6 +88,19 @@ public class CrateBlock extends BaseEntityBlock {
     }
 
     @Override
+    protected @NotNull List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
+        if (params.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof CrateBE be && BCConfig.crateRetainItems) {
+            ItemStack stack = new ItemStack(this);
+            ItemStack stored = be.getItemHandler().getStackInSlot(0);
+            if (!stored.isEmpty()) {
+                stack.set(BCDataComponents.CRATE_CONTENT, BigStackContainerContents.fromItems(be.getItemHandler().getItems(), be.getItemHandler().getSlotLimit()));
+            }
+            return List.of(stack);
+        }
+        return super.getDrops(state, params);
+    }
+
+    @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
         BlockEntity be = level.getBlockEntity(pos);
         if (be != null) {

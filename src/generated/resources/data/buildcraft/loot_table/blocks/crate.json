@@ -11,13 +11,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "buildcraft:crate",
-          "functions": [
-            {
-              "type": "minecraft:copy_components",
-              "source": "block_entity"
-            }
-          ]
+          "name": "buildcraft:crate"
         }
       ],
       "rolls": 1.0
