@@ -81,6 +81,8 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
             blocksPerSecond = BCConfig.diamondPipeSpeed;
         } else if (pipeId.contains("wooden")) {
             blocksPerSecond = BCConfig.woodenPipeSpeed;
+        } else if (pipeId.contains("iron")) {
+            blocksPerSecond = BCConfig.ironPipeSpeed;
         } else {
             blocksPerSecond = BCConfig.basicPipeSpeed;
         }

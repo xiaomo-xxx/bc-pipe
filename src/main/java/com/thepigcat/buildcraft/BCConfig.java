@@ -78,6 +78,11 @@ public final class BCConfig {
                      "默认: 1.0 = 1秒通过1段管道")
             .defineInRange("diamondPipeSpeed", 1.0, 0.01, 20.0);
 
+    private static final ModConfigSpec.DoubleValue IRON_PIPE_SPEED = BUILDER
+            .comment("铁质管道速度 (每秒通过多少个管道)",
+                     "默认: 0.96 = 1.05秒通过1段管道")
+            .defineInRange("ironPipeSpeed", 0.96, 0.01, 20.0);
+
     private static final ModConfigSpec.DoubleValue VOID_PIPE_SPEED = BUILDER
             .comment("虚空管道速度 (每秒通过多少个管道)",
                      "默认: 1.0 = 1秒销毁物品")
@@ -107,6 +112,7 @@ public final class BCConfig {
     public static double woodenPipeSpeed;
     public static double goldPipeSpeed;
     public static double diamondPipeSpeed;
+    public static double ironPipeSpeed;
     public static double voidPipeSpeed;
     public static double emeraldPipeSpeed;
 
@@ -140,6 +146,7 @@ public final class BCConfig {
         woodenPipeSpeed = WOODEN_PIPE_SPEED.get();
         goldPipeSpeed = GOLD_PIPE_SPEED.get();
         diamondPipeSpeed = DIAMOND_PIPE_SPEED.get();
+        ironPipeSpeed = IRON_PIPE_SPEED.get();
         voidPipeSpeed = VOID_PIPE_SPEED.get();
         emeraldPipeSpeed = EMERALD_PIPE_SPEED.get();
     }

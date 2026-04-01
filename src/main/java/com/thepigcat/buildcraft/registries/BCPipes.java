@@ -61,8 +61,8 @@ public final class BCPipes {
             BuildcraftLegacy.rl("block/sandstone_pipe")
     ), Either.right(ResourceLocation.parse("sandstone")), Ingredient.of(Items.SANDSTONE), List.of(BlockTags.MINEABLE_WITH_PICKAXE), 6);
 
-    // Iron pipes - directional item transport (3.3 sec, same as cobblestone/stone)
-    public static final PipeHolder IRON = HELPER.registerPipe("iron", BCPipeTypes.DEFAULT, "Iron Pipe", 0.03f, List.of(
+    // Iron pipes - directional item transport (1.05 sec, between quartz and diamond)
+    public static final PipeHolder IRON = HELPER.registerPipe("iron", BCPipeTypes.DEFAULT, "Iron Pipe", 0.048f, List.of(
             BuildcraftLegacy.rl("block/iron_pipe")
     ), Either.right(ResourceLocation.parse("iron_block")), Ingredient.of(Tags.Items.INGOTS_IRON), List.of(BlockTags.MINEABLE_WITH_PICKAXE), 7);
 
