@@ -28,6 +28,9 @@ repositories {
     }
     maven { url 'https://jitpack.io' }
     mavenLocal()
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 base {
@@ -96,8 +99,8 @@ dependencies {
 
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
-    compileOnly files("libs/portingdeadlibs-1.1.8.jar")
-    jarJar(files("libs/portingdeadlibs-1.1.8.jar"))
+    compileOnly ":portingdeadlibs:1.1.8"
+    jarJar(":portingdeadlibs:1.1.8")
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
