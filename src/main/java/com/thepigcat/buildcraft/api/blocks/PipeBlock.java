@@ -1,10 +1,8 @@
 package com.thepigcat.buildcraft.api.blocks;
 
-import com.thepigcat.buildcraft.BuildcraftLegacy;
 import com.thepigcat.buildcraft.api.blockentities.PipeBlockEntity;
 import com.thepigcat.buildcraft.content.blockentities.ItemPipeBE;
 import com.thepigcat.buildcraft.util.BlockUtils;
-import it.unimi.dsi.fastutil.objects.ObjectArraySet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -155,14 +153,21 @@ public abstract class PipeBlock extends BaseEntityBlock {
         PipeState connectionType = getConnectionType(level, blockPos, blockState, facingDirection, facingBlockPos);
         if (connectionType != PipeState.NONE) {
             pipeBE.getDirections().add(facingDirection);
+            if (connectionType == PipeState.EXTRACTING) {
+                pipeBE.extracting = facingDirection;
+            }
             return blockState.setValue(CONNECTION[connectionIndex], connectionType);
         } else if (facingBlockState.isEmpty()) {
             pipeBE.getDirections().remove(facingDirection);
+            if (pipeBE.extracting == facingDirection) {
+                pipeBE.extracting = null;
+            }
             return blockState.setValue(CONNECTION[connectionIndex], PipeState.NONE);
+        } else {
+            // Neighbor exists but not connectable — just ensure this direction is removed
+            pipeBE.getDirections().remove(facingDirection);
+            return blockState;
         }
-        setPipeProperties(pipeBE, blockState);
-
-        return blockState;
     }
 
     @Nullable
@@ -196,7 +201,9 @@ public abstract class PipeBlock extends BaseEntityBlock {
     }
 
     public static void setPipeProperties(PipeBlockEntity<?> be, BlockState state) {
-        Set<Direction> directions = new ObjectArraySet<>();
+        Set<Direction> directions = be.getDirections();
+        directions.clear();
+        be.extracting = null;
         for (Direction direction : Direction.values()) {
             PipeState pipeState = state.getValue(CONNECTION[direction.get3DDataValue()]);
             if (pipeState != PipeState.NONE) {
@@ -206,8 +213,6 @@ public abstract class PipeBlock extends BaseEntityBlock {
                 }
             }
         }
-        BuildcraftLegacy.LOGGER.debug("set Dirs: {}", directions);
-        be.setDirections(directions);
     }
 
     public abstract PipeState getConnectionType(LevelAccessor level, BlockPos pipePos, BlockState pipeState, Direction connectionDirection, BlockPos connectPos);
