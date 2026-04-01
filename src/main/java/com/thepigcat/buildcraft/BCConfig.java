@@ -60,23 +60,23 @@ public final class BCConfig {
     private static final ModConfigSpec.DoubleValue BASIC_PIPE_SPEED = BUILDER
             .comment("基础管道速度 (每秒通过多少个管道)",
                      "圆石/石/石英/砂岩/铁/粘土管道",
-                     "默认: 0.5 = 2秒通过1段管道")
-            .defineInRange("basicPipeSpeed", 0.5, 0.01, 20.0);
+                     "默认: 0.6 = 1.7秒通过1段管道")
+            .defineInRange("basicPipeSpeed", 0.6, 0.01, 20.0);
 
     private static final ModConfigSpec.DoubleValue WOODEN_PIPE_SPEED = BUILDER
             .comment("木质管道速度 (每秒通过多少个管道)",
-                     "默认: 0.5 = 2秒通过1段管道")
-            .defineInRange("woodenPipeSpeed", 0.5, 0.01, 20.0);
+                     "默认: 0.4 = 2.5秒通过1段管道")
+            .defineInRange("woodenPipeSpeed", 0.4, 0.01, 20.0);
 
     private static final ModConfigSpec.DoubleValue GOLD_PIPE_SPEED = BUILDER
             .comment("金质管道速度 (每秒通过多少个管道)",
-                     "默认: 1.0 = 1秒通过1段管道")
-            .defineInRange("goldPipeSpeed", 1.0, 0.01, 20.0);
+                     "默认: 1.2 = 0.8秒通过1段管道")
+            .defineInRange("goldPipeSpeed", 1.2, 0.01, 20.0);
 
     private static final ModConfigSpec.DoubleValue DIAMOND_PIPE_SPEED = BUILDER
             .comment("钻石管道速度 (每秒通过多少个管道)",
-                     "默认: 0.67 = 1.5秒通过1段管道")
-            .defineInRange("diamondPipeSpeed", 0.67, 0.01, 20.0);
+                     "默认: 1.0 = 1秒通过1段管道")
+            .defineInRange("diamondPipeSpeed", 1.0, 0.01, 20.0);
 
     private static final ModConfigSpec.DoubleValue VOID_PIPE_SPEED = BUILDER
             .comment("虚空管道速度 (每秒通过多少个管道)",
@@ -86,8 +86,8 @@ public final class BCConfig {
     private static final ModConfigSpec.DoubleValue EMERALD_PIPE_SPEED = BUILDER
             .comment("绿宝石管道速度 (每秒通过多少个管道)",
                      "快速抽取管道",
-                     "默认: 1.25 = 0.8秒通过1段管道")
-            .defineInRange("emeraldPipeSpeed", 1.25, 0.01, 20.0);
+                     "默认: 1.4 = 0.7秒通过1段管道")
+            .defineInRange("emeraldPipeSpeed", 1.4, 0.01, 20.0);
 
     static final ModConfigSpec SPEC = BUILDER.build();
 
