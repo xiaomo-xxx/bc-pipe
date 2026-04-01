@@ -50,14 +50,14 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
     public void tick() {
         if (level.isClientSide()) return;
 
-        // Extraction logic for diamond pipe (every 10 ticks)
-        if (level.getGameTime() % 10 == 0 && itemHandler.getStackInSlot(0).isEmpty() && extracting != null) {
+        // Extraction logic for diamond pipe (every 5 ticks for smoother flow)
+        if (level.getGameTime() % 5 == 0 && itemHandler.getStackInSlot(0).isEmpty() && extracting != null) {
             BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(this.extracting);
             if (cache != null) {
                 IItemHandler extractingHandler = cache.getCapability();
                 if (extractingHandler != null) {
                     for (int i = 0; i < extractingHandler.getSlots(); i++) {
-                        ItemStack extracted = extractingHandler.extractItem(i, 64, false);
+                        ItemStack extracted = extractingHandler.extractItem(i, 4, false);
                         if (!extracted.isEmpty()) {
                             ItemStack remainder = itemHandler.insertItem(0, extracted, false);
                             if (!remainder.isEmpty()) {

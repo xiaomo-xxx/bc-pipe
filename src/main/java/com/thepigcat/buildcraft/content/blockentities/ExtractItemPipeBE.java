@@ -17,19 +17,32 @@ public class ExtractItemPipeBE extends ItemPipeBE {
         super(BCBlockEntities.EXTRACTING_ITEM_PIPE.get(), pos, blockState);
     }
 
+    /**
+     * 获取当前管道的单次最大提取数量。
+     * 木管道：4 个，绿宝石管道：64 个（1组）
+     */
+    protected int getMaxExtract() {
+        String pipeId = this.getBlockState().getBlock().builtInRegistryHolder().key().location().getPath();
+        if (pipeId.contains("emerald")) {
+            return 64;
+        }
+        // 木管道默认 4 个
+        return 4;
+    }
+
     @Override
     public void tick() {
         if (level.isClientSide()) return;
 
-        // Extract items from the source container
-        if (level.getGameTime() % 10 == 0 && itemHandler.getStackInSlot(0).isEmpty()) {
+        // Extract items every 5 ticks for smoother flow
+        if (level.getGameTime() % 5 == 0 && itemHandler.getStackInSlot(0).isEmpty()) {
             BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(this.extracting);
             if (cache != null) {
                 IItemHandler extractingHandler = cache.getCapability();
                 if (extractingHandler != null) {
-                    // Find an item to extract
+                    int maxExtract = getMaxExtract();
                     for (int i = 0; i < extractingHandler.getSlots(); i++) {
-                        ItemStack extracted = extractingHandler.extractItem(i, 64, false);
+                        ItemStack extracted = extractingHandler.extractItem(i, maxExtract, false);
                         if (!extracted.isEmpty()) {
                             // Insert into our pipe
                             ItemStack remainder = itemHandler.insertItem(0, extracted, false);
@@ -56,7 +69,7 @@ public class ExtractItemPipeBE extends ItemPipeBE {
             }
         }
 
-        // Regular pipe movement logic (with early-return via parent tick)
+        // Regular pipe movement logic
         super.tick();
     }
 }
