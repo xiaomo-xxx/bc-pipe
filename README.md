@@ -7,7 +7,7 @@
 [![NeoForge](https://img.shields.io/badge/NeoForge-1.21.1-brightgreen?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAADhSURBVHgBpZK9DcIwEEXfURQpUjFASsYIjMAIjJAhIzBCRkiRIkVGIJBg+5ycnIQI+ZXP2e/52WcLwD+HJR4i4hGR4mxiZp+ZfWa2MrNVRC4i8hSRS0QuIrKOyC0iz8zs3uR7J9NJJavUd/s8m8xmYHqT7w1M7/K9geldvjcwfcj3BqZP+d7A9CXfG5i+5XsD0498b2D6le8NTH/yvYHpX743MA3I9wamQ/newDQk3xuYhuV7A9OIfG9gGpXvDUxj8r2BaVy+NzBNyPcGpkn53sA0Jd8bmKblewPTjHxvYJqV7w1Mc/K9gWlevjcwLcj3BqZF+d7AtCTfG5iW5XsD04p8b2D6BuG3QIx+c8yOAAAAAElFTkSuQmCC)](https://neoforged.net)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-green?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEBSURBVHgBdZO7DcIwEEXf0lAxFR0jMEKmYARESMcIjJApI1AwAiMQLH6d+MmJFcW3fu/svX0O4J+DuoKIuIjIICI3ETlGZBeRdUTWETlE5BKRq4isIrKKyDEiZxF5ZGa7mX27zvLf3WcmZraZ2W5muZl1ZtaaWW1mlZmVZlaYWW5muZllZpaZWWpmsZnFZhaZWWhmgZn5ZuaZmWtmjpk5ZmabmWVmpl48if0i8w/NrGdmpZkVZpaZWWZmqZmlZhb/vxv5ReZHZlabWWVmpZmVZlaZWWVmtZk1ZtaaWfeVX7+Z9WY2mNloZpOZzWa2mNlqZpuZ7WZ2mNn5ld9+MzvN7DKz28weM3vN7DOz38wBMwfNHDRzyMxhM0fMHDVz7Jd/ATjRUIn8U2ZGAAAAAElFTkSuQmCC)](https://www.minecraft.net)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.3.0-orange?style=for-the-badge)]()
+[![Version](https://img.shields.io/badge/Version-1.5.4-orange?style=for-the-badge)]()
 
 [![Java](https://img.shields.io/badge/Java-21-red?style=flat-square&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAADUSURBVHgBpZK9DcIwEEXf0kR0jMAIjMIIjMAIGSEFIzACI1CQ4tSJT05ChPzK5+z3/OyzA/hn0CgQETcROUXkFJGjiOwjcheRfUT2ETlE5BKRc0QuIrKIyCIi94hcI3Jzz5uZvXe+J5jZdOc7wczG4DvBzMbgO8HMxuA7wczG4DvBzMbgO8HMxuA7wczG4DvBzMbgO8HMxuA7wczG4DvBzMbgO8HMxuA7wczG4DvBzMbgO8HMxuA7wczG4DvBzMbgO8HMxuA7wczG4DvBzMbgO8HMxuA7wczG4DvBzMbgO+EJxIBAjFe9SbwAAAAASUVORK5CYII=)](https://www.oracle.com/java/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.x-02303A?style=flat-square&logo=gradle)](https://gradle.org/)
@@ -42,21 +42,21 @@
 
 | 管道 | 功能 | 速度 |
 |------|------|------|
-| 🪵 **木质管道** | 从相邻容器中抽取物品 | 0.25 blocks/s |
-| 💎 **绿宝石管道** | 快速抽取（速度是木质的 2 倍） | 0.5 blocks/s |
-| 💠 **钻石管道** | 抽取 + **6 面过滤**（每面 9 格过滤槽） | 0.3 blocks/s |
+| 🪵 **木质管道** | 从相邻容器中抽取物品 | 0.4 blocks/s |
+| 💎 **绿宝石管道** | 快速抽取（速度是木质的 3.5 倍） | 1.4 blocks/s |
+| 💠 **钻石管道** | 抽取 + **6 面过滤**（每面 9 格过滤槽） | 1.0 blocks/s |
 
 #### 传输管道（物品运送）
 
 | 管道 | 功能 | 速度 |
 |------|------|------|
-| 🪨 **圆石管道** | 基础传输 | 0.2 blocks/s |
-| ⬜ **石质管道** | 基础传输 | 0.2 blocks/s |
-| ⬛ **铁质管道** | 基础传输 | 0.2 blocks/s |
-| 💠 **石英管道** | 基础传输 | 0.2 blocks/s |
-| 🏜️ **砂岩管道** | 基础传输 | 0.2 blocks/s |
-| 🧱 **粘土管道** | 基础传输 | 0.2 blocks/s |
-| ✨ **金质管道** | 快速传输（速度 ×2） | 0.4 blocks/s |
+| 🪨 **圆石管道** | 基础传输 | 0.6 blocks/s |
+| ⬜ **石质管道** | 基础传输 | 0.6 blocks/s |
+| ⬛ **铁质管道** | 基础传输 | 0.96 blocks/s |
+| 💠 **石英管道** | 基础传输 | 0.6 blocks/s |
+| 🏜️ **砂岩管道** | 基础传输 | 0.6 blocks/s |
+| 🧱 **粘土管道** | 基础传输 | 0.6 blocks/s |
+| ✨ **金质管道** | 快速传输 | 1.2 blocks/s |
 
 #### 特殊管道
 
@@ -116,12 +116,13 @@
 
 ### 管道速度
 ```toml
-basicPipeSpeed = 0.2        # 基础管道（圆石/石/铁/石英/砂岩/粘土）
-woodenPipeSpeed = 0.25      # 木质管道（抽取）
-goldPipeSpeed = 0.4         # 金质管道（快速）
-diamondPipeSpeed = 0.3      # 钻石管道（过滤+抽取）
+basicPipeSpeed = 0.6        # 基础管道（圆石/石/石英/砂岩/粘土）
+woodenPipeSpeed = 0.4       # 木质管道（抽取）
+goldPipeSpeed = 1.2         # 金质管道（快速）
+diamondPipeSpeed = 1.0      # 钻石管道（过滤+抽取）
+ironPipeSpeed = 0.96        # 铁质管道
 voidPipeSpeed = 1.0         # 虚空管道（销毁）
-emeraldPipeSpeed = 0.5      # 绿宝石管道（快速抽取）
+emeraldPipeSpeed = 1.4      # 绿宝石管道（快速抽取）
 ```
 
 ### 储罐 & 板条箱
@@ -143,8 +144,8 @@ crateRetainItems = true     # 破坏保留物品
 ### 构建步骤
 
 ```bash
-git clone https://github.com/xiaomo-xxx/BuildCraft.git
-cd BuildCraft
+git clone https://github.com/xiaomo-xxx/bc-pipe.git
+cd bc-pipe
 ./gradlew build
 ```
 
