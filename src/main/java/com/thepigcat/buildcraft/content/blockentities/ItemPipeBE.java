@@ -30,8 +30,20 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     protected Direction from;
     protected Direction to;
     private Direction prevFrom;
+
+    /**
+     * Current progress of the item through this pipe segment.
+     * Range: -0.5 (entry face) → 0.0 (center) → 1.0 (exit face)
+     * >= 1.0 means the item is ready to transfer out.
+     */
     public float movement;
+    /** Previous movement value, used for client-side interpolation. */
     public float lastMovement;
+
+    /** How many ticks have passed since last network sync. */
+    private int syncTickCounter = 0;
+    /** Sync every N ticks (20 ticks = 1 second). Smoother = more bandwidth. */
+    private static final int SYNC_INTERVAL = 2;
 
     // Track how many items each direction has received (for round-robin splitting)
     private final Map<Direction, Integer> itemsSent = new EnumMap<>(Direction.class);
@@ -86,6 +98,7 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         } else {
             blocksPerSecond = BCConfig.basicPipeSpeed;
         }
+        // transferSpeed = blocksPerTick (server runs at 20 TPS)
         this.transferSpeed = (float) (blocksPerSecond / 20.0);
     }
 
@@ -170,6 +183,18 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         // Fast path: skip all work if pipe has no item and isn't mid-movement
         if (!active && this.movement <= 0f && this.itemHandler.getStackInSlot(0).isEmpty()) return;
 
+        // --- Move item toward the center (entry phase: -0.5 -> 0.0) ---
+        if (this.movement < 0f) {
+            this.lastMovement = this.movement;
+            this.movement += transferSpeed;
+            syncTickCounter++;
+            if (syncTickCounter >= SYNC_INTERVAL) {
+                sendMovementSync();
+                syncTickCounter = 0;
+            }
+            return; // Still approaching center, don't try to output yet
+        }
+
         // Item has reached the end of its movement through this pipe
         if (this.movement >= 1f) {
             ItemStack stack = itemHandler.getStackInSlot(0);
@@ -195,9 +220,12 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
                         // so the item appears at the connection point between pipes
                         nextPipe.lastMovement = -0.5f;
                         nextPipe.movement = -0.5f;
+                        nextPipe.syncTickCounter = 0;
 
                         // Deactivate current pipe
                         this.active = false;
+                        this.movement = 0f;
+                        this.lastMovement = 0f;
 
                         nextPipe.sendToTracking(new SyncPipeMovementPayload(nextPipe.getBlockPos(), nextPipe.movement, nextPipe.lastMovement));
                         nextPipe.sendToTracking(new SyncPipeDirectionPayload(nextPipe.getBlockPos(),
@@ -223,15 +251,29 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
             }
             this.lastMovement = 0;
             this.movement = 0;
-        }
-
-        // Advance movement if item is in pipe
-        this.lastMovement = this.movement;
-        if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
-            this.movement += transferSpeed;
+            syncTickCounter = 0;
         } else {
-            this.movement = 0;
+            // --- Advance movement through the pipe (center -> exit: 0.0 -> 1.0) ---
+            this.lastMovement = this.movement;
+            if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
+                this.movement += transferSpeed;
+            } else {
+                this.movement = 0;
+            }
+            // Periodic sync for continuous interpolation
+            syncTickCounter++;
+            if (syncTickCounter >= SYNC_INTERVAL) {
+                sendMovementSync();
+                syncTickCounter = 0;
+            }
         }
+    }
+
+    /**
+     * Send movement state to all tracking clients for smooth interpolation.
+     */
+    private void sendMovementSync() {
+        sendToTracking(new SyncPipeMovementPayload(getBlockPos(), this.movement, this.lastMovement));
     }
 
     public void setFrom(Direction from) {
@@ -265,8 +307,6 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
 
     /**
      * Gets the cached transfer speed (blocks per tick).
-     * Speed is cached at load time to avoid per-tick registry lookups.
-     * Call cacheTransferSpeed() if config changes at runtime.
      */
     protected float getTransferSpeed() {
         return transferSpeed;
@@ -292,6 +332,8 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         if (fromIndex != -1) {
             this.from = Direction.values()[fromIndex];
         }
+        this.movement = tag.contains("movement") ? tag.getFloat("movement") : 0f;
+        this.lastMovement = tag.contains("lastMovement") ? tag.getFloat("lastMovement") : 0f;
     }
 
     @Override
@@ -300,5 +342,7 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         tag.put("item_handler", this.itemHandler.serializeNBT(registries));
         tag.putInt("to", to != null ? to.ordinal() : -1);
         tag.putInt("from", from != null ? from.ordinal() : -1);
+        tag.putFloat("movement", movement);
+        tag.putFloat("lastMovement", lastMovement);
     }
 }
