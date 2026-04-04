@@ -175,7 +175,7 @@ public class BCBlockStateProvider extends BlockStateProvider {
     }
 
     private void extractingPipeBlock(Block block) {
-        ResourceLocation loc = BuiltInRegistryHolder.BLOCK.getKey(block);
+        ResourceLocation loc = BuiltInRegistries.BLOCK.getKey(block);
         MultiPartBlockStateBuilder builder = getMultipartBuilder(block);
         extractingPipeConnection(builder, loc, Direction.DOWN, 0, 0);
         extractingPipeConnection(builder, loc, Direction.UP, 180, 0);
@@ -235,4 +235,10 @@ public class BCBlockStateProvider extends BlockStateProvider {
         return ResourceLocation.fromNamespaceAndPath(rl.getNamespace(), path.toString());
     }
 
+    private ModelFile tankModel(ResourceLocation baseLoc, ResourceLocation topLoc, ResourceLocation sideLoc, ResourceLocation bottomLoc) {
+        return models().withExistingParent(baseLoc.getPath(), modLoc("block/tank_base"))
+                .texture("top", rl(topLoc.getNamespace(), topLoc.getPath()))
+                .texture("bottom", rl(bottomLoc.getNamespace(), bottomLoc.getPath()))
+                .texture("side", rl(sideLoc.getNamespace(), sideLoc.getPath()));
+    }
 }
