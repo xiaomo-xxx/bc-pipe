@@ -32,7 +32,6 @@ public class BCBlockStateProvider extends BlockStateProvider {
             } else if (block instanceof PipeBlock) {
                 pipeBlock(block);
             }
-
         }
     }
 
@@ -86,6 +85,78 @@ public class BCBlockStateProvider extends BlockStateProvider {
         );
     }
 
+    // ================================================================
+    // Pipe rendering
+    //
+    // Diamond & Emerald pipes:
+    //   - Base (center junction): 6 directional textures (_up, _down,
+    //     _north, _south, _east, _west) with diagonal markings per face
+    //   - Connection arms: use a flat "_connection" texture with only
+    //     grid lines (no corner diagonals → classic BC clean-pipe look)
+    //   - Extracting arms: use "_connection_extracting" with bright arrows
+    //
+    // All other pipes:
+    //   - Single flat texture for base + connection
+    // ================================================================
+
+    private ModelFile pipeBaseModel(ResourceLocation blockLoc) {
+        String path = blockLoc.getPath();
+        String ns = blockLoc.getNamespace();
+
+        // Diamond: 6 directional center body textures
+        if (path.equals("diamond")) {
+            return models().withExistingParent(path + "_base", modLoc("block/pipe_base_colored"))
+                    .texture("down",  rl(ns, "block/" + path + "_down"))
+                    .texture("up",    rl(ns, "block/" + path + "_up"))
+                    .texture("north", rl(ns, "block/" + path + "_north"))
+                    .texture("south", rl(ns, "block/" + path + "_south"))
+                    .texture("west",  rl(ns, "block/" + path + "_west"))
+                    .texture("east",  rl(ns, "block/" + path + "_east"));
+        }
+
+        // Emerald: directional center body (some faces can share the flat texture)
+        if (path.equals("emerald")) {
+            return models().withExistingParent(path + "_base", modLoc("block/pipe_base_colored"))
+                    .texture("down",  rl(ns, "block/" + path))
+                    .texture("up",    rl(ns, "block/" + path + "_up"))
+                    .texture("north", rl(ns, "block/" + path + "_north"))
+                    .texture("south", rl(ns, "block/" + path + "_south"))
+                    .texture("west",  rl(ns, "block/" + path + "_west"))
+                    .texture("east",  rl(ns, "block/" + path + "_east"));
+        }
+
+        // Simple pipes: single flat texture
+        return models().withExistingParent(path + "_base", modLoc("block/pipe_base"))
+                .texture("texture", rl(ns, "block/" + path));
+    }
+
+    private ModelFile pipeConnectionModel(ResourceLocation blockLoc) {
+        String path = blockLoc.getPath();
+        String ns = blockLoc.getNamespace();
+
+        // Diamond & emerald: use a clean flat connection texture
+        // (no diagonal corner markers → pipe arms look like solid grid lines
+        //  matching the original BuildCraft classic appearance)
+        if (path.equals("diamond") || path.equals("emerald")) {
+            return models().withExistingParent(path + "_connection", modLoc("block/pipe_connection"))
+                    .texture("texture", rl(ns, "block/" + path + "_connection"));
+        }
+        return models().withExistingParent(path + "_connection", modLoc("block/pipe_connection"))
+                .texture("texture", rl(ns, "block/" + path));
+    }
+
+    private ModelFile pipeExtractingModel(ResourceLocation blockLoc) {
+        String path = blockLoc.getPath();
+        String ns = blockLoc.getNamespace();
+        // Diamond & emerald: use dedicated extracting connection texture
+        if (path.equals("diamond") || path.equals("emerald")) {
+            return models().withExistingParent(path + "_connection_extracting", modLoc("block/pipe_connection"))
+                    .texture("texture", rl(ns, "block/" + path + "_connection_extracting"));
+        }
+        return models().withExistingParent(path + "_connection_extracting", modLoc("block/pipe_connection"))
+                .texture("texture", rl(ns, "block/" + path + "_extracting"));
+    }
+
     private void pipeBlock(Block block) {
         ResourceLocation loc = BuiltInRegistries.BLOCK.getKey(block);
         MultiPartBlockStateBuilder builder = getMultipartBuilder(block);
@@ -104,7 +175,7 @@ public class BCBlockStateProvider extends BlockStateProvider {
     }
 
     private void extractingPipeBlock(Block block) {
-        ResourceLocation loc = BuiltInRegistries.BLOCK.getKey(block);
+        ResourceLocation loc = BuiltInRegistryHolder.BLOCK.getKey(block);
         MultiPartBlockStateBuilder builder = getMultipartBuilder(block);
         extractingPipeConnection(builder, loc, Direction.DOWN, 0, 0);
         extractingPipeConnection(builder, loc, Direction.UP, 180, 0);
@@ -122,35 +193,8 @@ public class BCBlockStateProvider extends BlockStateProvider {
                 .condition(PipeBlock.CONNECTION[direction.get3DDataValue()], PipeBlock.PipeState.EXTRACTING).end();
     }
 
-    private ModelFile pipeBaseModel(ResourceLocation blockLoc) {
-        if (blockLoc.getPath().equals("diamond")) {
-            return models().withExistingParent(blockLoc.getPath() + "_base", modLoc("block/pipe_base_colored"))
-                    .texture("down", ResourceLocation.fromNamespaceAndPath(blockLoc.getNamespace(), "block/" + blockLoc.getPath() + "_down"))
-                    .texture("up", ResourceLocation.fromNamespaceAndPath(blockLoc.getNamespace(), "block/" + blockLoc.getPath() + "_up"))
-                    .texture("north", ResourceLocation.fromNamespaceAndPath(blockLoc.getNamespace(), "block/" + blockLoc.getPath() + "_north"))
-                    .texture("south", ResourceLocation.fromNamespaceAndPath(blockLoc.getNamespace(), "block/" + blockLoc.getPath() + "_south"))
-                    .texture("west", ResourceLocation.fromNamespaceAndPath(blockLoc.getNamespace(), "block/" + blockLoc.getPath() + "_west"))
-                    .texture("east", ResourceLocation.fromNamespaceAndPath(blockLoc.getNamespace(), "block/" + blockLoc.getPath() + "_east"));
-        }
-        return models().withExistingParent(blockLoc.getPath() + "_base", modLoc("block/pipe_base"))
-                .texture("texture", ResourceLocation.fromNamespaceAndPath(blockLoc.getNamespace(), "block/" + blockLoc.getPath()));
-    }
-
-    private ModelFile tankModel(ResourceLocation baseLoc, ResourceLocation topLoc, ResourceLocation sideLoc, ResourceLocation bottomLoc) {
-        return models().withExistingParent(baseLoc.getPath(), modLoc("block/tank_base"))
-                .texture("top", ResourceLocation.fromNamespaceAndPath(topLoc.getNamespace(), topLoc.getPath()))
-                .texture("bottom", ResourceLocation.fromNamespaceAndPath(bottomLoc.getNamespace(), bottomLoc.getPath()))
-                .texture("side", ResourceLocation.fromNamespaceAndPath(sideLoc.getNamespace(), sideLoc.getPath()));
-    }
-
-    private ModelFile pipeConnectionModel(ResourceLocation blockLoc) {
-        return models().withExistingParent(blockLoc.getPath() + "_connection", modLoc("block/pipe_connection"))
-                .texture("texture", ResourceLocation.fromNamespaceAndPath(blockLoc.getNamespace(), "block/" + blockLoc.getPath()));
-    }
-
-    private ModelFile pipeExtractingModel(ResourceLocation blockLoc) {
-        return models().withExistingParent(blockLoc.getPath() + "_connection_extracting", modLoc("block/pipe_connection"))
-                .texture("texture", ResourceLocation.fromNamespaceAndPath(blockLoc.getNamespace(), "block/" + blockLoc.getPath() + "_extracting"));
+    private ResourceLocation rl(String ns, String path) {
+        return ResourceLocation.fromNamespaceAndPath(ns, path);
     }
 
     private ResourceLocation key(Block block) {
@@ -162,13 +206,13 @@ public class BCBlockStateProvider extends BlockStateProvider {
     }
 
     public ResourceLocation blockTexture(Block block, String suffix) {
-        ResourceLocation name = key(block);
-        return ResourceLocation.fromNamespaceAndPath(name.getNamespace(), ModelProvider.BLOCK_FOLDER + "/" + name.getPath() + suffix);
+        ResourceLocation loc = key(block);
+        return ResourceLocation.fromNamespaceAndPath(loc.getNamespace(), ModelProvider.BLOCK_FOLDER + "/" + loc.getPath() + suffix);
     }
 
     public ResourceLocation blockTexture(Block block) {
-        ResourceLocation name = key(block);
-        return ResourceLocation.fromNamespaceAndPath(name.getNamespace(), ModelProvider.BLOCK_FOLDER + "/" + name.getPath());
+        ResourceLocation loc = key(block);
+        return ResourceLocation.fromNamespaceAndPath(loc.getNamespace(), ModelProvider.BLOCK_FOLDER + "/" + loc.getPath());
     }
 
     private ResourceLocation suffix(ResourceLocation rl, String suffix) {
