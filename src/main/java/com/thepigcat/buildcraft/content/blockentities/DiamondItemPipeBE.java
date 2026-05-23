@@ -74,6 +74,14 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
         // Fast path: skip if pipe has no item and isn't mid-movement
         if (!active && this.movement <= 0f && this.itemHandler.getStackInSlot(0).isEmpty()) return;
 
+        // --- Move item toward the center (entry phase: -0.5 -> 0.0) ---
+        if (this.movement < 0f) {
+            this.lastMovement = this.movement;
+            this.movement += transferSpeed;
+            sendToTracking(new SyncPipeMovementPayload(getBlockPos(), this.movement, this.lastMovement));
+            return; // Still approaching center, don't try to output yet
+        }
+
         // Movement logic
         if (this.movement >= 1f) {
             ItemStack stack = itemHandler.getStackInSlot(0);
@@ -122,12 +130,15 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
             this.movement = 0;
         }
 
-        // Advance movement
-        this.lastMovement = this.movement;
-        if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
-            this.movement += transferSpeed;
-        } else {
-            this.movement = 0;
+        // Advance movement (only when movement is between 0 and 1)
+        if (this.movement >= 0f && this.movement < 1f) {
+            this.lastMovement = this.movement;
+            if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
+                this.movement += transferSpeed;
+            } else {
+                this.movement = 0;
+            }
+            sendToTracking(new SyncPipeMovementPayload(getBlockPos(), this.movement, this.lastMovement));
         }
     }
 

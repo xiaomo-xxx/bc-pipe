@@ -252,7 +252,7 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
             this.lastMovement = 0;
             this.movement = 0;
             syncTickCounter = 0;
-        } else {
+        } else if (this.movement >= 0f) {
             // --- Advance movement through the pipe (center -> exit: 0.0 -> 1.0) ---
             this.lastMovement = this.movement;
             if (!this.itemHandler.getStackInSlot(0).isEmpty()) {
