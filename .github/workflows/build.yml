@@ -4,7 +4,7 @@ on:
   push:
   pull_request:
 
-# 强制使用 Node.js 24，消除弃用警告（核心修复）
+# 强制使用 Node.js 24（减少警告，不影响功能）
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -24,8 +24,10 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 升级为最新版 Gradle Action（消除弃用警告）
-      - name: Build with Gradle
+      # ✅ 新版用法：仅配置 Gradle（无任何参数）
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          arguments: build
+
+      # ✅ 单独执行构建命令（修复 arguments 废弃报错）
+      - name: Build with Gradle
+        run: ./gradlew build
