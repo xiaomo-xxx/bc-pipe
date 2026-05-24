@@ -1,12 +1,13 @@
-# 工作流名称
 name: Build
 
-# 触发条件：push代码 / 提交PR（核心：必须用英文on，不能用中文）
 on:
   push:
   pull_request:
 
-# 执行任务
+# 强制使用 Node.js 24，消除弃用警告（核心修复）
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,7 +24,8 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      # 升级为最新版 Gradle Action（消除弃用警告）
       - name: Build with Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           arguments: build
