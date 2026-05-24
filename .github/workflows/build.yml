@@ -1,7 +1,12 @@
+# 工作流名称
 name: Build
 
-于: [push, pull_request]
+# 触发条件：push代码 / 提交PR（核心：必须用英文on，不能用中文）
+on:
+  push:
+  pull_request:
 
+# 执行任务
 jobs:
   build:
     runs-on: ubuntu-latest
