@@ -163,6 +163,9 @@ cd bc-pipe
 - [Buildcraft-Legacy](https://github.com/Thepigcat76/Buildcraft-Legacy) — 原始项目
 - [Porting Dead Mods](https://github.com/Porting-Dead-Mods) — Porting Dead Libs API
 - [BuildCraft](https://www.buildcraft.net/) — 经典 BuildCraft 原版 mod
+- [BCCE-team/BuildCraft](https://github.com/BCCE-team/BuildCraft) — 管道与储罐贴图（MPL-2.0）
+
+> 本项目的管道、储罐贴图取自 BCCE（BuildCraft Community Edition），同样采用 MPL-2.0 协议。
 
 ---
 
