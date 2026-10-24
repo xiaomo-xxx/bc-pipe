@@ -13,7 +13,7 @@ import com.thepigcat.buildcraft.content.blockentities.VoidItemPipeBE;
 import com.thepigcat.buildcraft.data.BCDataComponents;
 import com.thepigcat.buildcraft.networking.RedstoneSignalTypeSyncPayload;
 import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
-import com.thepigcat.buildcraft.networking.SyncPipeMovementPayload;
+import com.thepigcat.buildcraft.networking.SyncPipeMovementBatchPayload;
 import com.thepigcat.buildcraft.registries.*;
 import com.thepigcat.buildcraft.util.PipeRegistrationHelper;
 import net.minecraft.core.registries.Registries;
@@ -109,7 +109,7 @@ public final class BuildcraftLegacy {
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(MODID);
         registrar.playToClient(SyncPipeDirectionPayload.TYPE, SyncPipeDirectionPayload.STREAM_CODEC, SyncPipeDirectionPayload::handle);
-        registrar.playToClient(SyncPipeMovementPayload.TYPE, SyncPipeMovementPayload.STREAM_CODEC, SyncPipeMovementPayload::handle);
+        registrar.playToClient(SyncPipeMovementBatchPayload.TYPE, SyncPipeMovementBatchPayload.STREAM_CODEC, SyncPipeMovementBatchPayload::handle);
         registrar.playToServer(RedstoneSignalTypeSyncPayload.TYPE, RedstoneSignalTypeSyncPayload.STREAM_CODEC, RedstoneSignalTypeSyncPayload::handle);
     }
 

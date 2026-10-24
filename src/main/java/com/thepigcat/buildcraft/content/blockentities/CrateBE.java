@@ -25,9 +25,10 @@ public class CrateBE extends BlockEntity {
         this.itemHandler = new JumboItemHandler(BCConfig.crateItemCapacity) {
             @Override
             public boolean isItemValid(int slot, ItemStack stack) {
+                // getStackInSlot() copies the stack on every call, so read it exactly once.
                 ItemStack stackInSlot = getStackInSlot(slot);
                 return stackInSlot.isEmpty()
-                        || (stack.is(stackInSlot.getItem()) && getStackInSlot(slot).getCount() < getSlotLimit(slot));
+                        || (stack.is(stackInSlot.getItem()) && stackInSlot.getCount() < getSlotLimit(slot));
             }
 
             @Override

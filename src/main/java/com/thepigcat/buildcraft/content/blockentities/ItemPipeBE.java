@@ -3,8 +3,8 @@ package com.thepigcat.buildcraft.content.blockentities;
 import com.thepigcat.buildcraft.BCConfig;
 import com.thepigcat.buildcraft.BuildcraftLegacy;
 import com.thepigcat.buildcraft.api.blockentities.PipeBlockEntity;
+import com.thepigcat.buildcraft.networking.PipeSyncManager;
 import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
-import com.thepigcat.buildcraft.networking.SyncPipeMovementPayload;
 import com.thepigcat.buildcraft.registries.BCBlockEntities;
 import com.thepigcat.buildcraft.util.BlockUtils;
 import net.minecraft.core.BlockPos;
@@ -40,10 +40,12 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     /** Previous movement value, used for client-side interpolation. */
     public float lastMovement;
 
-    /** How many ticks have passed since last network sync. */
-    private int syncTickCounter = 0;
-    /** Sync every N ticks (20 ticks = 1 second). Smoother = more bandwidth. */
-    private static final int SYNC_INTERVAL = 2;
+    /**
+     * Last side an item was successfully routed to. Kept so the hot path can skip the
+     * "scan every output for a matching stack" loop that {@link #chooseBestOutput} otherwise runs
+     * on every single transfer.
+     */
+    protected Direction preferredOutput;
 
     // Track how many items each direction has received (for round-robin splitting)
     private final Map<Direction, Integer> itemsSent = new EnumMap<>(Direction.class);
@@ -148,19 +150,24 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
      */
     protected Direction chooseBestOutput(List<Direction> outputs, ItemStack toSend) {
         if (outputs.isEmpty()) return null;
-        if (outputs.size() == 1) return outputs.getFirst();
+        if (outputs.size() == 1) {
+            preferredOutput = outputs.getFirst();
+            return preferredOutput;
+        }
+
+        // Fast path: item flow is stable in practice, so the side we used last tick is almost
+        // always the right one again. Verifying a single handler is far cheaper than walking
+        // every slot of every output.
+        if (preferredOutput != null && outputs.contains(preferredOutput)
+                && holdsMatchingItem(preferredOutput, toSend)) {
+            return preferredOutput;
+        }
 
         // First, try to find a destination that already has matching items
         for (Direction dir : outputs) {
-            BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(dir);
-            if (cache == null) continue;
-            IItemHandler handler = cache.getCapability();
-            if (handler == null) continue;
-            for (int i = 0; i < handler.getSlots(); i++) {
-                ItemStack existing = handler.getStackInSlot(i);
-                if (!existing.isEmpty() && ItemStack.isSameItemSameComponents(existing, toSend)) {
-                    return dir;
-                }
+            if (holdsMatchingItem(dir, toSend)) {
+                preferredOutput = dir;
+                return dir;
             }
         }
 
@@ -174,7 +181,27 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
                 best = dir;
             }
         }
+        preferredOutput = best;
         return best;
+    }
+
+    /**
+     * Whether the container behind {@code dir} already holds the given item, i.e. sending it there
+     * keeps the destination compact instead of scattering one item per slot.
+     */
+    private boolean holdsMatchingItem(Direction dir, ItemStack toSend) {
+        BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(dir);
+        if (cache == null) return false;
+        IItemHandler handler = cache.getCapability();
+        if (handler == null) return false;
+
+        for (int i = 0; i < handler.getSlots(); i++) {
+            ItemStack existing = handler.getStackInSlot(i);
+            if (!existing.isEmpty() && ItemStack.isSameItemSameComponents(existing, toSend)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void tick() {
@@ -187,11 +214,7 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         if (this.movement < 0f) {
             this.lastMovement = this.movement;
             this.movement += transferSpeed;
-            syncTickCounter++;
-            if (syncTickCounter >= SYNC_INTERVAL) {
-                sendMovementSync();
-                syncTickCounter = 0;
-            }
+            queueMovementSync();
             return; // Still approaching center, don't try to output yet
         }
 
@@ -220,14 +243,13 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
                         // so the item appears at the connection point between pipes
                         nextPipe.lastMovement = -0.5f;
                         nextPipe.movement = -0.5f;
-                        nextPipe.syncTickCounter = 0;
 
                         // Deactivate current pipe
                         this.active = false;
                         this.movement = 0f;
                         this.lastMovement = 0f;
 
-                        nextPipe.sendToTracking(new SyncPipeMovementPayload(nextPipe.getBlockPos(), nextPipe.movement, nextPipe.lastMovement));
+                        nextPipe.queueMovementSync();
                         nextPipe.sendToTracking(new SyncPipeDirectionPayload(nextPipe.getBlockPos(),
                                 Optional.ofNullable(nextPipe.from), Optional.ofNullable(nextPipe.to)));
                     } else {
@@ -251,7 +273,6 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
             }
             this.lastMovement = 0;
             this.movement = 0;
-            syncTickCounter = 0;
         } else if (this.movement >= 0f) {
             // --- Advance movement through the pipe (center -> exit: 0.0 -> 1.0) ---
             this.lastMovement = this.movement;
@@ -260,20 +281,18 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
             } else {
                 this.movement = 0;
             }
-            // Periodic sync for continuous interpolation
-            syncTickCounter++;
-            if (syncTickCounter >= SYNC_INTERVAL) {
-                sendMovementSync();
-                syncTickCounter = 0;
-            }
+            queueMovementSync();
         }
     }
 
     /**
-     * Send movement state to all tracking clients for smooth interpolation.
+     * Hands this pipe's current movement state to {@link PipeSyncManager}, which flushes one
+     * packet per chunk at the end of the server tick instead of one packet per pipe.
      */
-    private void sendMovementSync() {
-        sendToTracking(new SyncPipeMovementPayload(getBlockPos(), this.movement, this.lastMovement));
+    protected void queueMovementSync() {
+        if (level instanceof ServerLevel serverLevel) {
+            PipeSyncManager.queueMovement(serverLevel, worldPosition, this.movement, this.lastMovement);
+        }
     }
 
     public void setFrom(Direction from) {
@@ -292,7 +311,7 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         this.lastMovement = 0;
         this.movement = 0;
 
-        sendToTracking(new SyncPipeMovementPayload(worldPosition, this.movement, this.lastMovement));
+        queueMovementSync();
         sendToTracking(new SyncPipeDirectionPayload(worldPosition,
                 Optional.ofNullable(from), Optional.ofNullable(this.to)));
     }

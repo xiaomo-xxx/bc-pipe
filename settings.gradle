@@ -1,5 +1,9 @@
 pluginManagement {
     repositories {
+        // 国内镜像优先，官方源作为兜底。删掉前四行即可恢复成原始配置。
+        maven { url = 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url = 'https://maven.aliyun.com/repository/public' }
+        maven { url = 'https://mirrors.ustc.edu.cn/bmclapi/' }
         mavenLocal()
         gradlePluginPortal()
         maven { url = 'https://maven.neoforged.net/releases' }

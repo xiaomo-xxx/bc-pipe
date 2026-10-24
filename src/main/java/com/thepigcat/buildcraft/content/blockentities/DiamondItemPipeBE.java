@@ -3,7 +3,6 @@ package com.thepigcat.buildcraft.content.blockentities;
 import com.thepigcat.buildcraft.registries.BCBlockEntities;
 import com.thepigcat.buildcraft.content.menus.DiamondPipeMenu;
 import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
-import com.thepigcat.buildcraft.networking.SyncPipeMovementPayload;
 import com.thepigcat.buildcraft.util.BlockUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -42,6 +41,12 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
         }
     };
 
+    /** How many items a single pull may take out of the source container. */
+    private static final int EXTRACT_AMOUNT = 32;
+    /** Pulling every other tick is imperceptible at pipe speeds and halves the source scan cost. */
+    private static final int EXTRACT_INTERVAL = 2;
+    private int extractCooldown;
+
     public DiamondItemPipeBE(BlockPos pos, BlockState blockState) {
         super(BCBlockEntities.DIAMOND_ITEM_PIPE.get(), pos, blockState);
     }
@@ -50,21 +55,25 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
     public void tick() {
         if (level.isClientSide()) return;
 
-        // Extraction logic for diamond pipe (every tick for smooth flow)
+        // Extraction logic for diamond pipe, throttled to avoid scanning the source container
+        // every single tick while the pipe is idle.
         if (itemHandler.getStackInSlot(0).isEmpty() && extracting != null) {
-            BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(this.extracting);
-            if (cache != null) {
-                IItemHandler extractingHandler = cache.getCapability();
-                if (extractingHandler != null) {
-                    for (int i = 0; i < extractingHandler.getSlots(); i++) {
-                        ItemStack extracted = extractingHandler.extractItem(i, 32, false);
-                        if (!extracted.isEmpty()) {
-                            ItemStack remainder = itemHandler.insertItem(0, extracted, false);
-                            if (!remainder.isEmpty()) {
-                                extractingHandler.insertItem(i, remainder, false);
+            if (--extractCooldown <= 0) {
+                extractCooldown = EXTRACT_INTERVAL;
+                BlockCapabilityCache<IItemHandler, Direction> cache = capabilityCaches.get(this.extracting);
+                if (cache != null) {
+                    IItemHandler extractingHandler = cache.getCapability();
+                    if (extractingHandler != null) {
+                        for (int i = 0; i < extractingHandler.getSlots(); i++) {
+                            ItemStack extracted = extractingHandler.extractItem(i, EXTRACT_AMOUNT, false);
+                            if (!extracted.isEmpty()) {
+                                ItemStack remainder = itemHandler.insertItem(0, extracted, false);
+                                if (!remainder.isEmpty()) {
+                                    extractingHandler.insertItem(i, remainder, false);
+                                }
+                                this.setFrom(this.extracting);
+                                break;
                             }
-                            this.setFrom(this.extracting);
-                            break;
                         }
                     }
                 }
@@ -78,7 +87,7 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
         if (this.movement < 0f) {
             this.lastMovement = this.movement;
             this.movement += transferSpeed;
-            sendToTracking(new SyncPipeMovementPayload(getBlockPos(), this.movement, this.lastMovement));
+            queueMovementSync();
             return; // Still approaching center, don't try to output yet
         }
 
@@ -106,7 +115,7 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
                         nextPipe.movement = -0.5f;
                         this.active = false;
 
-                        nextPipe.sendToTracking(new SyncPipeMovementPayload(nextPipe.getBlockPos(), nextPipe.movement, nextPipe.lastMovement));
+                        nextPipe.queueMovementSync();
                         nextPipe.sendToTracking(new SyncPipeDirectionPayload(nextPipe.getBlockPos(),
                                 Optional.ofNullable(nextPipe.from), Optional.ofNullable(nextPipe.to)));
                     } else {
@@ -138,7 +147,7 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
             } else {
                 this.movement = 0;
             }
-            sendToTracking(new SyncPipeMovementPayload(getBlockPos(), this.movement, this.lastMovement));
+            queueMovementSync();
         }
     }
 
