@@ -1,8 +1,7 @@
 package com.thepigcat.buildcraft.networking;
 
 import com.thepigcat.buildcraft.BuildcraftLegacy;
-import com.thepigcat.buildcraft.content.blockentities.ItemPipeBE;
-import com.thepigcat.buildcraft.util.BlockUtils;
+import com.thepigcat.buildcraft.api.pipes.MovementSyncTarget;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -70,11 +69,10 @@ public record SyncPipeMovementBatchPayload(ChunkPos chunkPos, List<Entry> entrie
         context.enqueueWork(() -> {
             Level level = context.player().level();
             for (Entry entry : payload.entries()) {
-                ItemPipeBE be = BlockUtils.getBE(ItemPipeBE.class, level, entry.pos());
-                if (be != null) {
-                    // 只写目标值，实际渲染用的 movement 由 ItemPipeBE#tickClient 平滑逼近，
+                if (level.getBlockEntity(entry.pos()) instanceof MovementSyncTarget target) {
+                    // 只写目标值，实际渲染用的 movement 由各方块实体的 tickClient 平滑逼近，
                     // 避免数据包到达时刻不均导致的抖动。
-                    be.targetMovement = entry.movement();
+                    target.applyTargetMovement(entry.movement());
                 }
             }
         });

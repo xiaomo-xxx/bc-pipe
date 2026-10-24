@@ -7,6 +7,7 @@ import com.thepigcat.buildcraft.api.pipes.Pipe;
 import com.thepigcat.buildcraft.api.pipes.PipeType;
 import com.thepigcat.buildcraft.content.blockentities.CrateBE;
 import com.thepigcat.buildcraft.content.blockentities.DiamondItemPipeBE;
+import com.thepigcat.buildcraft.content.blockentities.FluidPipeBE;
 import com.thepigcat.buildcraft.content.blockentities.ItemPipeBE;
 import com.thepigcat.buildcraft.content.blockentities.TankBE;
 import com.thepigcat.buildcraft.content.blockentities.VoidItemPipeBE;
@@ -101,6 +102,9 @@ public final class BuildcraftLegacy {
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, BCBlockEntities.CRATE.get(), CrateBE::getItemHandler);
         // FLUID
         event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, BCBlockEntities.TANK.get(), ContainerBlockEntity::getFluidHandlerOnSide);
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, BCBlockEntities.FLUID_PIPE.get(), FluidPipeBE::getFluidHandler);
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, BCBlockEntities.EXTRACTING_FLUID_PIPE.get(), FluidPipeBE::getFluidHandler);
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, BCBlockEntities.VOID_FLUID_PIPE.get(), FluidPipeBE::getFluidHandler);
 
         event.registerItem(Capabilities.ItemHandler.ITEM, (stack, ctx) -> new JumboItemHandlerItemWrapper(stack), BCBlocks.CRATE);
         event.registerItem(Capabilities.FluidHandler.ITEM, (stack, ctx) -> new FluidHandlerItemStack(BCDataComponents.TANK_CONTENT, stack, BCConfig.tankCapacity), BCBlocks.TANK);

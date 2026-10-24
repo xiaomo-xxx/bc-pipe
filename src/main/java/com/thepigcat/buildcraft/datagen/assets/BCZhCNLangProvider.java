@@ -34,6 +34,9 @@ public class BCZhCNLangProvider extends LanguageProvider {
         add("block.buildcraft.diamond_pipe", "钻石管道");
         add("block.buildcraft.void_pipe", "虚空管道");
         add("block.buildcraft.emerald_pipe", "绿宝石管道");
+        add("block.buildcraft.wooden_fluid_pipe", "木质液体管道");
+        add("block.buildcraft.cobblestone_fluid_pipe", "圆石液体管道");
+        add("block.buildcraft.void_fluid_pipe", "虚空液体管道");
 
         // 创造模式标签页
         add("itemGroup.buildcraft.bc_tab", "BuildCraft");

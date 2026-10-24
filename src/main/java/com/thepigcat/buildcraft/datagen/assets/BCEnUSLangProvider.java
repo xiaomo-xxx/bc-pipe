@@ -36,6 +36,9 @@ public class BCEnUSLangProvider extends LanguageProvider {
         add("block.buildcraft.diamond_pipe", "Diamond Pipe");
         add("block.buildcraft.void_pipe", "Void Pipe");
         add("block.buildcraft.emerald_pipe", "Emerald Pipe");
+        add("block.buildcraft.wooden_fluid_pipe", "Wooden Fluid Pipe");
+        add("block.buildcraft.cobblestone_fluid_pipe", "Cobblestone Fluid Pipe");
+        add("block.buildcraft.void_fluid_pipe", "Void Fluid Pipe");
 
         addRedstoneSignalType(RedstoneBlockEntity.RedstoneSignalType.IGNORED, "Ignored");
         addRedstoneSignalType(RedstoneBlockEntity.RedstoneSignalType.LOW_SIGNAL, "Low Signal");

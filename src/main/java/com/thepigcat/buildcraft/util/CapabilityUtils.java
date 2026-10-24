@@ -33,4 +33,8 @@ public final class CapabilityUtils {
         return blockEntityCapability(Capabilities.FluidHandler.BLOCK, blockEntity);
     }
 
+    public static @Nullable IFluidHandler fluidHandlerCapability(BlockEntity blockEntity, Direction direction) {
+        return blockEntityCapability(Capabilities.FluidHandler.BLOCK, blockEntity, direction);
+    }
+
 }

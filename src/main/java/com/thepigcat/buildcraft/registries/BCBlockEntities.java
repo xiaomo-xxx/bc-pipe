@@ -4,12 +4,18 @@ import com.thepigcat.buildcraft.BuildcraftLegacy;
 import com.thepigcat.buildcraft.content.blockentities.CrateBE;
 import com.thepigcat.buildcraft.content.blockentities.DiamondItemPipeBE;
 import com.thepigcat.buildcraft.content.blockentities.ExtractItemPipeBE;
+import com.thepigcat.buildcraft.content.blockentities.ExtractingFluidPipeBE;
+import com.thepigcat.buildcraft.content.blockentities.FluidPipeBE;
 import com.thepigcat.buildcraft.content.blockentities.ItemPipeBE;
 import com.thepigcat.buildcraft.content.blockentities.TankBE;
+import com.thepigcat.buildcraft.content.blockentities.VoidFluidPipeBE;
 import com.thepigcat.buildcraft.content.blockentities.VoidItemPipeBE;
+import com.thepigcat.buildcraft.content.blocks.ExtractingFluidPipeBlock;
 import com.thepigcat.buildcraft.content.blocks.ExtractingItemPipeBlock;
+import com.thepigcat.buildcraft.content.blocks.FluidPipeBlock;
 import com.thepigcat.buildcraft.content.blocks.ItemPipeBlock;
 import com.thepigcat.buildcraft.content.blocks.DiamondItemPipeBlock;
+import com.thepigcat.buildcraft.content.blocks.VoidFluidPipeBlock;
 import com.thepigcat.buildcraft.content.blocks.VoidItemPipeBlock;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
@@ -37,6 +43,16 @@ public final class BCBlockEntities {
             () -> BlockEntityType.Builder.of(TankBE::new, BCBlocks.TANK.get()).build(null));
     public static final Supplier<BlockEntityType<CrateBE>> CRATE = BLOCK_ENTITIES.register("crate",
             () -> BlockEntityType.Builder.of(CrateBE::new, BCBlocks.CRATE.get()).build(null));
+
+    // === 液体管道 ===
+    public static final Supplier<BlockEntityType<FluidPipeBE>> FLUID_PIPE = BLOCK_ENTITIES.register("fluid_pipe",
+            () -> BlockEntityType.Builder.of(FluidPipeBE::new, collectBlocks(FluidPipeBlock.class)).build(null));
+
+    public static final Supplier<BlockEntityType<ExtractingFluidPipeBE>> EXTRACTING_FLUID_PIPE = BLOCK_ENTITIES.register("extracting_fluid_pipe",
+            () -> BlockEntityType.Builder.of(ExtractingFluidPipeBE::new, collectBlocks(ExtractingFluidPipeBlock.class)).build(null));
+
+    public static final Supplier<BlockEntityType<VoidFluidPipeBE>> VOID_FLUID_PIPE = BLOCK_ENTITIES.register("void_fluid_pipe",
+            () -> BlockEntityType.Builder.of(VoidFluidPipeBE::new, collectBlocks(VoidFluidPipeBlock.class)).build(null));
 
     private static Block[] collectBlocks(Class<? extends Block> clazz) {
         return BuiltInRegistries.BLOCK.stream().filter(clazz::isInstance).toList().toArray(Block[]::new);

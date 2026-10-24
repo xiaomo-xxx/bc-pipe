@@ -3,6 +3,7 @@ package com.thepigcat.buildcraft.content.blockentities;
 import com.thepigcat.buildcraft.BCConfig;
 import com.thepigcat.buildcraft.BuildcraftLegacy;
 import com.thepigcat.buildcraft.api.blockentities.PipeBlockEntity;
+import com.thepigcat.buildcraft.api.pipes.MovementSyncTarget;
 import com.thepigcat.buildcraft.networking.PipeSyncManager;
 import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
 import com.thepigcat.buildcraft.registries.BCBlockEntities;
@@ -24,7 +25,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 
 import java.util.*;
 
-public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
+public class ItemPipeBE extends PipeBlockEntity<IItemHandler> implements MovementSyncTarget {
     protected final ItemStackHandler itemHandler;
 
     protected Direction from;
@@ -301,6 +302,11 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
      * 客户端每 tick 把 movement 朝服务端目标值逼近一半。
      * 这样无论数据包什么时候到达，渲染用的位置都是连续变化的。
      */
+    @Override
+    public void applyTargetMovement(float movement) {
+        this.targetMovement = movement;
+    }
+
     protected void tickClient() {
         this.lastMovement = this.movement;
 

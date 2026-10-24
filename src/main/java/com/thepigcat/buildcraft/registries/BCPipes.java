@@ -82,6 +82,23 @@ public final class BCPipes {
             BuildcraftLegacy.rl("block/emerald_pipe_extracting")
     ), Either.right(ResourceLocation.parse("emerald_block")), Ingredient.of(Tags.Items.GEMS_EMERALD), List.of(BlockTags.MINEABLE_WITH_PICKAXE), 10);
 
+    // === 液体管道 ===
+    // 木质液体管道：从相邻容器抽取，单向输出
+    public static final PipeHolder WOODEN_FLUID = HELPER.registerPipe("wooden_fluid", BCPipeTypes.FLUID_EXTRACTING, "Wooden Fluid Pipe", 0.02f, List.of(
+            BuildcraftLegacy.rl("block/wooden_fluid_pipe"),
+            BuildcraftLegacy.rl("block/wooden_fluid_pipe_extracting")
+    ), Either.right(ResourceLocation.parse("oak_planks")), Ingredient.of(ItemTags.PLANKS), List.of(BlockTags.MINEABLE_WITH_AXE), 20);
+
+    // 圆石液体管道：基础传输
+    public static final PipeHolder COBBLESTONE_FLUID = HELPER.registerPipe("cobblestone_fluid", BCPipeTypes.FLUID, "Cobblestone Fluid Pipe", 0.03f, List.of(
+            BuildcraftLegacy.rl("block/cobblestone_fluid_pipe")
+    ), Either.right(ResourceLocation.parse("cobblestone")), Ingredient.of(Tags.Items.COBBLESTONES), List.of(BlockTags.MINEABLE_WITH_PICKAXE), 21);
+
+    // 虚空液体管道：销毁液体
+    public static final PipeHolder VOID_FLUID = HELPER.registerPipe("void_fluid", BCPipeTypes.FLUID_VOID, "Void Fluid Pipe", 0.05f, List.of(
+            BuildcraftLegacy.rl("block/void_fluid_pipe")
+    ), Either.right(ResourceLocation.parse("obsidian")), Ingredient.of(Items.OBSIDIAN), List.of(BlockTags.MINEABLE_WITH_PICKAXE), 22);
+
     public static void init() {
     }
 }
