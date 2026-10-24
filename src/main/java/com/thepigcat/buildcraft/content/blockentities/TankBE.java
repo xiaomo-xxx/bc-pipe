@@ -45,6 +45,14 @@ public class TankBE extends ContainerBlockEntity {
     private boolean bottomJoined;
     public FluidStack initialFluid;
 
+    /**
+     * 破坏时预先算好的掉落流体。
+     * <p>
+     * 关键：{@code onRemove}（拆分/上移/扣除流体）先于 {@code getDrops} 执行，
+     * 等 getDrops 再去读罐子时，里面的流体已经被重分配掉了，所以必须在改动之前先存一份。
+     */
+    public FluidStack pendingDropFluid = FluidStack.EMPTY;
+
     public TankBE(BlockPos pos, BlockState blockState) {
         super(BCBlockEntities.TANK.get(), pos, blockState);
         addFluidHandler(HandlerUtils::newDynamicFluidTank, builder -> builder

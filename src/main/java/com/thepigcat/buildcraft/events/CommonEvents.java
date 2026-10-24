@@ -34,29 +34,32 @@ public final class CommonEvents {
 
     @SubscribeEvent
     public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
-        Level level = event.getLevel();
-        if (!level.isClientSide()) {
-            BlockPos pos = event.getPos();
-            BlockState blockState = level.getBlockState(pos);
-            if (blockState.getBlock() instanceof CrateBlock && event.getFace().equals(blockState.getValue(BlockStateProperties.HORIZONTAL_FACING))) {
-                CrateBE be = BlockUtils.getBE(CrateBE.class, level, pos);
-                if (be != null) {
-                    // Always cancel break when clicking crate front face
-                    event.setCanceled(true);
+        if (event.getLevel().isClientSide()) return;
+        // 只在按下的一瞬间处理，否则按住不放会每个 tick 都抽一次
+        if (event.getAction() != PlayerInteractEvent.LeftClickBlock.Action.START) return;
 
-                    JumboItemHandler itemHandler = be.getItemHandler();
-                    ItemStack stack = itemHandler.getStackInSlot(0);
-                    if (!stack.isEmpty()) {
-                        int count = 1;
-                        Player player = event.getEntity();
-                        if (player.isShiftKeyDown()) {
-                            count = Math.min(stack.getMaxStackSize(), stack.getCount());
-                        }
-                        ItemStack extracted = itemHandler.extractItem(0, count, false);
-                        ItemHandlerHelper.giveItemToPlayer(player, extracted);
-                    }
-                }
-            }
+        Player player = event.getEntity();
+        // 关键：只有潜行才是「快速取物」。不潜行时保持原版挖掘行为，
+        // 否则玩家永远没法从正面把箱子挖掉（旧逻辑会无条件取消破坏事件）。
+        if (!player.isShiftKeyDown()) return;
+
+        Level level = event.getLevel();
+        BlockPos pos = event.getPos();
+        BlockState blockState = level.getBlockState(pos);
+        if (!(blockState.getBlock() instanceof CrateBlock)) return;
+        if (!event.getFace().equals(blockState.getValue(BlockStateProperties.HORIZONTAL_FACING))) return;
+
+        CrateBE be = BlockUtils.getBE(CrateBE.class, level, pos);
+        if (be == null) return;
+
+        event.setCanceled(true);
+
+        JumboItemHandler itemHandler = be.getItemHandler();
+        ItemStack stack = itemHandler.getStackInSlot(0);
+        if (!stack.isEmpty()) {
+            int count = Math.min(stack.getMaxStackSize(), stack.getCount());
+            ItemStack extracted = itemHandler.extractItem(0, count, false);
+            ItemHandlerHelper.giveItemToPlayer(player, extracted);
         }
     }
 }

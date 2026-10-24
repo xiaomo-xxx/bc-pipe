@@ -51,19 +51,23 @@ public class PipeBERenderer implements BlockEntityRenderer<ItemPipeBE> {
                 float endZ = 0.5f + toNormal.getZ() * 0.5f;
 
                 float x, y, z;
-                if (progress < 0f) {
-                    // Smooth handoff phase: from entry face to center
-                    float t = progress + 0.5f; // 0.0 to 0.5 → maps to 0.0 to 1.0
-                    t = Mth.clamp(t, 0f, 1f);
-                    x = Mth.lerp(t, startX, midX);
-                    y = Mth.lerp(t, startY, midY);
-                    z = Mth.lerp(t, startZ, midZ);
+                // movement 的范围是 -0.5（入口面）→ 1.0（出口面），共 1.5 个单位，对应 1 格距离。
+                // 旧代码把两段按不同比例映射（入口 0.5 个单位走半格、出口 1.0 个单位走半格），
+                // 物品过了中心速度会突然减半，再叠加 smoothStep 缓动，看起来就是一路顿挫/颤抖。
+                // 这里改成统一按 1.5 个单位线性映射，全程匀速。
+                float t = Mth.clamp((progress + 0.5f) / 1.5f, 0f, 1f); // 0 = 入口面, 1 = 出口面
+                if (t < 0.5f) {
+                    // 入口面 → 中心
+                    float s = t * 2f;
+                    x = Mth.lerp(s, startX, midX);
+                    y = Mth.lerp(s, startY, midY);
+                    z = Mth.lerp(s, startZ, midZ);
                 } else {
-                    // Normal phase: center to exit face with ease-in-out
-                    float t = smoothStep(Mth.clamp(progress, 0f, 1f));
-                    x = Mth.lerp(t, midX, endX);
-                    y = Mth.lerp(t, midY, endY);
-                    z = Mth.lerp(t, midZ, endZ);
+                    // 中心 → 出口面
+                    float s = (t - 0.5f) * 2f;
+                    x = Mth.lerp(s, midX, endX);
+                    y = Mth.lerp(s, midY, endY);
+                    z = Mth.lerp(s, midZ, endZ);
                 }
 
                 poseStack.translate(x, y, z);
@@ -96,12 +100,5 @@ public class PipeBERenderer implements BlockEntityRenderer<ItemPipeBE> {
             );
         }
         poseStack.popPose();
-    }
-
-    /**
-     * Smooth-step easing for natural acceleration/deceleration.
-     */
-    private static float smoothStep(float t) {
-        return t * t * (3f - 2f * t);
     }
 }

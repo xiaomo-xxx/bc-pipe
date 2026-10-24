@@ -255,6 +255,13 @@ public class TankBlock extends ContainerBlock {
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (!state.is(newState.getBlock())) {
+            // 必须在拆分/重分配之前把这一格该掉的流体存下来，
+            // 否则 getDrops 晚一步执行，读到的已经是改动后的流体。
+            TankBE removedBE = BlockUtils.getBE(TankBE.class, level, pos);
+            if (removedBE != null) {
+                removedBE.pendingDropFluid = computeDropFluid(removedBE);
+            }
+
             if (state.getValue(TOP_JOINED) && state.getValue(BOTTOM_JOINED)) {
                 splitTank(level, pos);
             } else if (state.getValue(TOP_JOINED) && !state.getValue(BOTTOM_JOINED)) {
@@ -269,6 +276,30 @@ public class TankBlock extends ContainerBlock {
         if (!state.is(newState.getBlock())) {
             level.removeBlockEntity(pos);
         }
+    }
+
+    /**
+     * 计算破坏这一格储罐时应当掉落多少流体。
+     * <p>
+     * 堆叠储罐的流体全部存在最底部那一格，所以第 n 格对应的区间是
+     * {@code [n * capacity, (n+1) * capacity)}，只有落在区间里的部分才属于这一格。
+     */
+    private static FluidStack computeDropFluid(TankBE be) {
+        if (!BCConfig.tankRetainFluids) {
+            return FluidStack.EMPTY;
+        }
+
+        FluidStack total = be.getFluidHandler().getFluidInTank(0);
+        if (total.isEmpty() || total.getAmount() <= 0) {
+            return FluidStack.EMPTY;
+        }
+
+        BlockPos bottomPos = be.getBottomTankPos();
+        int index = bottomPos == null ? 0 : Math.max(be.getBlockPos().getY() - bottomPos.getY(), 0);
+        int below = index * BCConfig.tankCapacity;
+        int amount = Math.min(Math.max(total.getAmount() - below, 0), BCConfig.tankCapacity);
+
+        return amount > 0 ? total.copyWithAmount(amount) : FluidStack.EMPTY;
     }
 
     private static void removeFluidFromBottomTank(Level level, BlockPos pos) {
@@ -319,38 +350,22 @@ public class TankBlock extends ContainerBlock {
 
     @Override
     protected @NotNull List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
-        if (params.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof TankBE be) {
-            ItemStack stack = new ItemStack(this);
-            if (BCConfig.tankRetainFluids) {
-                try {
-                    BlockPos bottomPos = be.getBottomTankPos();
-                    if (bottomPos == null) {
-                        // 单个储罐
-                        FluidStack fluidStack = be.getFluidTank().getFluidInTank(0);
-                        if (!fluidStack.isEmpty() && fluidStack.getAmount() > 0) {
-                            stack.set(BCDataComponents.TANK_CONTENT, SimpleFluidContent.copyOf(fluidStack));
-                        }
-                    } else {
-                        // 堆叠储罐：计算当前储罐的流体
-                        FluidStack totalFluid = be.getFluidHandler().getFluidInTank(0);
-                        int tankIndex = be.getBlockPos().getY() - bottomPos.getY();
-                        int prevFluidAmount = tankIndex * BCConfig.tankCapacity;
-                        int myFluidAmount = Math.min(Math.max(totalFluid.getAmount() - prevFluidAmount, 0), BCConfig.tankCapacity);
-                        if (myFluidAmount > 0) {
-                            stack.set(BCDataComponents.TANK_CONTENT, SimpleFluidContent.copyOf(totalFluid.copyWithAmount(myFluidAmount)));
-                        }
-                    }
-                } catch (Exception e) {
-                    // Fallback: save whatever is in the tank
-                    FluidStack fluid = be.getFluidTank().getFluidInTank(0);
-                    if (!fluid.isEmpty() && fluid.getAmount() > 0) {
-                        stack.set(BCDataComponents.TANK_CONTENT, SimpleFluidContent.copyOf(fluid));
-                    }
-                }
-            }
-            return List.of(stack);
+        if (!(params.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof TankBE be)) {
+            return super.getDrops(state, params);
         }
-        return super.getDrops(state, params);
+
+        ItemStack stack = new ItemStack(this);
+        if (BCConfig.tankRetainFluids) {
+            // 正常流程里 onRemove 已经算好了；万一没走 onRemove，这里兜底再算一次
+            FluidStack fluid = be.pendingDropFluid;
+            if (fluid.isEmpty()) {
+                fluid = computeDropFluid(be);
+            }
+            if (!fluid.isEmpty() && fluid.getAmount() > 0) {
+                stack.set(BCDataComponents.TANK_CONTENT, SimpleFluidContent.copyOf(fluid));
+            }
+        }
+        return List.of(stack);
     }
 
 }
