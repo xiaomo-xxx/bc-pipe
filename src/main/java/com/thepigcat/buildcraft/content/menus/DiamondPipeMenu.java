@@ -23,26 +23,26 @@ public class DiamondPipeMenu extends AbstractContainerMenu {
         super(BCMenuTypes.DIAMOND_PIPE.get(), containerId);
         this.blockEntity = blockEntity;
 
-        // 6 rows of 9 filter slots, matching vanilla generic_54 layout
+        // 6 rows of 9 filter slots. x=26 leaves room for the direction color chip + letter.
         for (int side = 0; side < 6; side++) {
             for (int i = 0; i < SLOTS_PER_SIDE; i++) {
                 int index = side * SLOTS_PER_SIDE + i;
-                int slotX = 8 + i * 18;
+                int slotX = 26 + i * 18;
                 int slotY = 18 + side * 18;
                 addSlot(new SlotItemHandler(blockEntity.getFilterHandler(), index, slotX, slotY));
             }
         }
 
-        // Player inventory (3 rows × 9 cols), matching vanilla layout
+        // Player inventory (3 rows × 9 cols), aligned with the filter grid
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(inv, col + row * 9 + 9, 8 + col * 18, 140 + row * 18));
+                addSlot(new Slot(inv, col + row * 9 + 9, 26 + col * 18, 140 + row * 18));
             }
         }
 
         // Player hotbar at y=198 (4px gap below inventory)
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(inv, col, 8 + col * 18, 198));
+            addSlot(new Slot(inv, col, 26 + col * 18, 198));
         }
     }
 

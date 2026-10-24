@@ -41,6 +41,15 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     public float lastMovement;
 
     /**
+     * 客户端专用：服务端最近一次同步过来的目标进度。
+     * <p>
+     * 网络包到达的时刻并不均匀（服务端 tick 抖动 + 网络抖动），如果直接拿包里的值渲染，
+     * 物品位置会每帧跳一下，看起来就是「抽搐」。客户端每 tick 只朝这个目标逼近一部分，
+     * 运动就始终连续。
+     */
+    public float targetMovement;
+
+    /**
      * Last side an item was successfully routed to. Kept so the hot path can skip the
      * "scan every output for a matching stack" loop that {@link #chooseBestOutput} otherwise runs
      * on every single transfer.
@@ -205,7 +214,10 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     }
 
     public void tick() {
-        if (level.isClientSide()) return;
+        if (level.isClientSide()) {
+            tickClient();
+            return;
+        }
 
         // Fast path: skip all work if pipe has no item and isn't mid-movement
         if (!active && this.movement <= 0f && this.itemHandler.getStackInSlot(0).isEmpty()) return;
@@ -286,12 +298,28 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
     }
 
     /**
+     * 客户端每 tick 把 movement 朝服务端目标值逼近一半。
+     * 这样无论数据包什么时候到达，渲染用的位置都是连续变化的。
+     */
+    protected void tickClient() {
+        this.lastMovement = this.movement;
+
+        float delta = this.targetMovement - this.movement;
+        if (Math.abs(delta) < 0.002f || Math.abs(delta) > 0.6f) {
+            // 已经对齐；或者差值过大（换物品、反向回弹），本来就该瞬间变化，直接对齐
+            this.movement = this.targetMovement;
+        } else {
+            this.movement += delta * 0.5f;
+        }
+    }
+
+    /**
      * Hands this pipe's current movement state to {@link PipeSyncManager}, which flushes one
      * packet per chunk at the end of the server tick instead of one packet per pipe.
      */
     protected void queueMovementSync() {
         if (level instanceof ServerLevel serverLevel) {
-            PipeSyncManager.queueMovement(serverLevel, worldPosition, this.movement, this.lastMovement);
+            PipeSyncManager.queueMovement(serverLevel, worldPosition, this.movement);
         }
     }
 
@@ -353,6 +381,8 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> {
         }
         this.movement = tag.contains("movement") ? tag.getFloat("movement") : 0f;
         this.lastMovement = tag.contains("lastMovement") ? tag.getFloat("lastMovement") : 0f;
+        // 方块实体数据同步过来的值作为初始目标，之后由网络包持续更新
+        this.targetMovement = this.movement;
     }
 
     @Override

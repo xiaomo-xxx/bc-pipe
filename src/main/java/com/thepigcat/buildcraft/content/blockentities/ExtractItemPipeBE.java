@@ -46,7 +46,10 @@ public class ExtractItemPipeBE extends ItemPipeBE {
 
     @Override
     public void tick() {
-        if (level.isClientSide()) return;
+        if (level.isClientSide()) {
+            tickClient();
+            return;
+        }
 
         if (itemHandler.getStackInSlot(0).isEmpty() && extracting != null) {
             if (--extractCooldown <= 0) {

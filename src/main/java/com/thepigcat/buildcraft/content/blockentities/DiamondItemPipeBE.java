@@ -53,7 +53,10 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
 
     @Override
     public void tick() {
-        if (level.isClientSide()) return;
+        if (level.isClientSide()) {
+            tickClient();
+            return;
+        }
 
         // Extraction logic for diamond pipe, throttled to avoid scanning the source container
         // every single tick while the pipe is idle.

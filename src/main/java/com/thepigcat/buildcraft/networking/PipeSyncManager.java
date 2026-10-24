@@ -37,7 +37,7 @@ public final class PipeSyncManager {
      * harmless - the map entry is overwritten, which also deduplicates the two updates a diamond
      * pipe produces when it finishes a segment.
      */
-    public static void queueMovement(ServerLevel level, BlockPos pos, float movement, float lastMovement) {
+    public static void queueMovement(ServerLevel level, BlockPos pos, float movement) {
         Map<ChunkPos, Map<BlockPos, SyncPipeMovementBatchPayload.Entry>> perChunk =
                 PENDING.computeIfAbsent(level, l -> new HashMap<>());
 
@@ -45,7 +45,7 @@ public final class PipeSyncManager {
         BlockPos key = pos.immutable();
 
         perChunk.computeIfAbsent(chunkPos, k -> new HashMap<>())
-                .put(key, new SyncPipeMovementBatchPayload.Entry(key, movement, lastMovement));
+                .put(key, new SyncPipeMovementBatchPayload.Entry(key, movement));
     }
 
     /**

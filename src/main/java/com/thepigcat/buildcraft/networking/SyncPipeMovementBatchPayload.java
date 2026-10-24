@@ -43,7 +43,6 @@ public record SyncPipeMovementBatchPayload(ChunkPos chunkPos, List<Entry> entrie
                     for (Entry entry : payload.entries()) {
                         BlockPos.STREAM_CODEC.encode(buf, entry.pos());
                         buf.writeFloat(entry.movement());
-                        buf.writeFloat(entry.lastMovement());
                     }
                 }
 
@@ -55,7 +54,7 @@ public record SyncPipeMovementBatchPayload(ChunkPos chunkPos, List<Entry> entrie
                     List<Entry> entries = new ArrayList<>(size);
                     for (int i = 0; i < size; i++) {
                         BlockPos pos = BlockPos.STREAM_CODEC.decode(buf);
-                        entries.add(new Entry(pos, buf.readFloat(), buf.readFloat()));
+                        entries.add(new Entry(pos, buf.readFloat()));
                     }
                     return new SyncPipeMovementBatchPayload(new ChunkPos(chunkX, chunkZ), entries);
                 }
@@ -73,13 +72,14 @@ public record SyncPipeMovementBatchPayload(ChunkPos chunkPos, List<Entry> entrie
             for (Entry entry : payload.entries()) {
                 ItemPipeBE be = BlockUtils.getBE(ItemPipeBE.class, level, entry.pos());
                 if (be != null) {
-                    be.lastMovement = entry.lastMovement();
-                    be.movement = entry.movement();
+                    // 只写目标值，实际渲染用的 movement 由 ItemPipeBE#tickClient 平滑逼近，
+                    // 避免数据包到达时刻不均导致的抖动。
+                    be.targetMovement = entry.movement();
                 }
             }
         });
     }
 
-    public record Entry(BlockPos pos, float movement, float lastMovement) {
+    public record Entry(BlockPos pos, float movement) {
     }
 }
