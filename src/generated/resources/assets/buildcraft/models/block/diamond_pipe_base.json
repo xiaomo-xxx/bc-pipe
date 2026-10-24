@@ -1,6 +1,11 @@
 {
-  "parent": "buildcraft:block/pipe_base",
+  "parent": "buildcraft:block/pipe_base_colored",
   "textures": {
-    "texture": "buildcraft:block/diamond_pipe"
+    "down": "buildcraft:block/diamond_pipe_down",
+    "up": "buildcraft:block/diamond_pipe_up",
+    "north": "buildcraft:block/diamond_pipe_north",
+    "south": "buildcraft:block/diamond_pipe_south",
+    "west": "buildcraft:block/diamond_pipe_west",
+    "east": "buildcraft:block/diamond_pipe_east"
   }
 }
