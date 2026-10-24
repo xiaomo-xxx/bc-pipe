@@ -178,22 +178,9 @@ public final class ModelUtils {
                     }""".formatted(blockPath, blockPath, blockPath, blockPath, blockPath, blockPath);
         }
 
-        // Diamond pipe connection uses per-direction textures
-        if (path.contains("diamond") && path.endsWith("_connection")) {
-            String blockPath = path.replace("_connection", "").replace("block/", "");
-            return """
-                    {
-                      "parent": "buildcraft:block/pipe_connection_colored",
-                      "textures": {
-                        "down": "buildcraft:block/%s_down",
-                        "up": "buildcraft:block/%s_up",
-                        "north": "buildcraft:block/%s_north",
-                        "south": "buildcraft:block/%s_south",
-                        "west": "buildcraft:block/%s_west",
-                        "east": "buildcraft:block/%s_east"
-                      }
-                    }""".formatted(blockPath, blockPath, blockPath, blockPath, blockPath, blockPath);
-        }
+        // 连接臂不再用方向色：臂的模型在 blockstate 里带旋转，套方向色会被转乱，
+        // 而且整根臂涂成高饱和色看着很花。只让管体六个面保留方向色，臂用中性材质。
+        // （下面走到通用分支，用 textures[0] 即 diamond_pipe 本身）
 
         // Diamond pipe extracting connection uses the extracting texture per-face
         if (path.contains("diamond") && path.endsWith("_connection_extracting")) {
