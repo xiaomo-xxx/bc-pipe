@@ -277,7 +277,7 @@ public class FluidPipeBE extends PipeBlockEntity<IFluidHandler> implements Movem
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
-        this.tank.deserializeNBT(registries, tag.getCompound("tank"));
+        this.tank.readFromNBT(registries, tag.getCompound("tank"));
         int fromIndex = tag.getInt("from");
         if (fromIndex != -1) {
             this.from = Direction.values()[fromIndex];
@@ -294,7 +294,7 @@ public class FluidPipeBE extends PipeBlockEntity<IFluidHandler> implements Movem
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
-        tag.put("tank", this.tank.serializeNBT(registries));
+        tag.put("tank", this.tank.writeToNBT(registries, new CompoundTag()));
         tag.putInt("from", from != null ? from.ordinal() : -1);
         tag.putInt("to", to != null ? to.ordinal() : -1);
         tag.putFloat("movement", movement);
