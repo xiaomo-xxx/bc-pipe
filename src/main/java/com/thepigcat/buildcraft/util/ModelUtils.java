@@ -161,21 +161,39 @@ public final class ModelUtils {
     public static final BiFunction<Pipe, ResourceLocation, String> DEFAULT_BLOCK_MODEL_FILE = ((pipe, texture) -> {
         String path = texture.getPath();
 
-        // Diamond pipe uses per-face textures for the base model
+        // Diamond pipe uses per-face textures for the base model.
+        // 刻意写成「不依赖父模型」的自包含模型：之前用 pipe_base_colored 作 parent 时
+        // 方块上看不到任何方向色，怀疑是父模型解析/覆盖的问题，这里把 elements 内联，
+        // 只要模型文件被加载就一定会按六面贴图渲染。
         if (path.endsWith("_base") && path.contains("diamond")) {
             String blockPath = path.replace("_base", "").replace("block/", "");
             return """
                     {
-                      "parent": "buildcraft:block/pipe_base_colored",
+                      "render_type": "cutout",
                       "textures": {
+                        "particle": "buildcraft:block/%s",
                         "down": "buildcraft:block/%s_down",
                         "up": "buildcraft:block/%s_up",
                         "north": "buildcraft:block/%s_north",
                         "south": "buildcraft:block/%s_south",
                         "west": "buildcraft:block/%s_west",
                         "east": "buildcraft:block/%s_east"
-                      }
-                    }""".formatted(blockPath, blockPath, blockPath, blockPath, blockPath, blockPath);
+                      },
+                      "elements": [
+                        {
+                          "from": [4, 4, 4],
+                          "to": [12, 12, 12],
+                          "faces": {
+                            "down": { "texture": "#down" },
+                            "up": { "texture": "#up" },
+                            "north": { "texture": "#north" },
+                            "south": { "texture": "#south" },
+                            "west": { "texture": "#west" },
+                            "east": { "texture": "#east" }
+                          }
+                        }
+                      ]
+                    }""".formatted(blockPath, blockPath, blockPath, blockPath, blockPath, blockPath, blockPath);
         }
 
         // 连接臂不再用方向色：臂的模型在 blockstate 里带旋转，套方向色会被转乱，
