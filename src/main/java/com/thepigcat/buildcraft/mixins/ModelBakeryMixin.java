@@ -53,8 +53,14 @@ public abstract class ModelBakeryMixin {
             for (String s : type.models()) {
                 ResourceLocation modelLocation = location.withSuffix("_" + s);
                 ResourceLocation modelLocationFile = MODEL_LISTER.idToFile(modelLocation);
-                BlockModel blockModel = BlockModel.fromString(type.defaultBlockModel().apply(entry.getValue(), modelLocation));
+                String modelJson = type.defaultBlockModel().apply(entry.getValue(), modelLocation);
+                BlockModel blockModel = BlockModel.fromString(modelJson);
                 this.modelResources.put(modelLocationFile, blockModel);
+
+                // 诊断用：确认钻石管道的基础模型到底生成成了什么
+                if (modelLocation.getPath().contains("diamond")) {
+                    BuildcraftLegacy.LOGGER.info("[BC-DEBUG] generated {} = {}", modelLocation, modelJson.replaceAll("\\s+", " "));
+                }
             }
         }
 
