@@ -1,6 +1,7 @@
 package com.thepigcat.buildcraft;
 
 import com.thepigcat.buildcraft.client.blockentities.CrateBERenderer;
+import com.thepigcat.buildcraft.client.blockentities.DiamondPipeBERenderer;
 import com.thepigcat.buildcraft.client.blockentities.PipeBERenderer;
 import com.thepigcat.buildcraft.client.blockentities.TankBERenderer;
 import com.thepigcat.buildcraft.client.items.CrateItemRenderer;
@@ -53,7 +54,8 @@ public final class BuildcraftLegacyClient {
     private void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(BCBlockEntities.ITEM_PIPE.get(), PipeBERenderer::new);
         event.registerBlockEntityRenderer(BCBlockEntities.EXTRACTING_ITEM_PIPE.get(), PipeBERenderer::new);
-        event.registerBlockEntityRenderer(BCBlockEntities.DIAMOND_ITEM_PIPE.get(), PipeBERenderer::new);
+        // 钻石管道用子类渲染器：先画管内物品，再画六个方向色（绕开 block model）
+        event.registerBlockEntityRenderer(BCBlockEntities.DIAMOND_ITEM_PIPE.get(), DiamondPipeBERenderer::new);
         event.registerBlockEntityRenderer(BCBlockEntities.CRATE.get(), CrateBERenderer::new);
         event.registerBlockEntityRenderer(BCBlockEntities.TANK.get(), TankBERenderer::new);
     }
