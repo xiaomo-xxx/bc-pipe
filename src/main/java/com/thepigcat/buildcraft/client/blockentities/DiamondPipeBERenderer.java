@@ -33,9 +33,15 @@ public class DiamondPipeBERenderer extends PipeBERenderer {
             0xE0E010,  // EAST  - 黄
     };
 
-    /** 管体是 4..12 的立方体，色片稍微外扩一点盖住模型面，避免 z-fighting。 */
-    private static final float LO = 3.995f;
-    private static final float HI = 12.005f;
+    /**
+     * 管体是模型坐标 4..12 的立方体，换算成方块坐标就是 0.25..0.75。
+     * <p>
+     * 注意：{@code addVertex} 用的是方块坐标（0~1），不是模型坐标（0~16）。
+     * 之前这里直接写了 3.995 / 12.005，等于把色片画到了离管道 4~12 格远的地方，
+     * 所以方块上一直看不到颜色。色片稍微外扩一点盖住模型面，避免 z-fighting。
+     */
+    private static final float LO = 4f / 16f - 0.0005f;
+    private static final float HI = 12f / 16f + 0.0005f;
 
     public DiamondPipeBERenderer(BlockEntityRendererProvider.Context context) {
         super(context);
