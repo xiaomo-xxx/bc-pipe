@@ -11,7 +11,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
@@ -22,6 +21,8 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4f;
+
+import java.util.function.Function;
 
 public class PipeBERenderer implements BlockEntityRenderer<ItemPipeBE> {
     /**
@@ -138,7 +139,8 @@ public class PipeBERenderer implements BlockEntityRenderer<ItemPipeBE> {
      */
     private static void renderDiamondFaces(PoseStack poseStack, MultiBufferSource buffers, int light, int overlay) {
         VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutout(InventoryMenu.BLOCK_ATLAS));
-        TextureAtlas atlas = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
+        Function<ResourceLocation, TextureAtlasSprite> atlas =
+                Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
 
         final float half = 0.25f;       // 8/16 的一半
         final float epsilon = 0.0001f; // 稍微往外挪一点
