@@ -1,24 +1,54 @@
 package com.thepigcat.buildcraft.client.blockentities;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
+import com.thepigcat.buildcraft.BuildcraftLegacy;
+import com.thepigcat.buildcraft.content.blockentities.DiamondItemPipeBE;
 import com.thepigcat.buildcraft.content.blockentities.ItemPipeBE;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import org.joml.Matrix4f;
 
 public class PipeBERenderer implements BlockEntityRenderer<ItemPipeBE> {
+    /**
+     * 钻石管道六个方向的面贴图。
+     * <p>
+     * 这些颜色本来应该由方块模型（pipe_base_colored）提供，但运行时模型会被
+     * ModelBakery 里的 mixin 覆盖成中性模型，改资源包也没用（mixin 在所有资源包
+     * 加载完之后才注入）。所以这里直接由渲染器把六个面画出来，绕开模型系统。
+     */
+    private static final ResourceLocation[] DIAMOND_FACE_TEXTURES = new ResourceLocation[6];
+
+    static {
+        for (Direction dir : Direction.values()) {
+            DIAMOND_FACE_TEXTURES[dir.ordinal()] =
+                    ResourceLocation.fromNamespaceAndPath(BuildcraftLegacy.MODID, "block/diamond_pipe_" + dir.getName());
+        }
+    }
+
     public PipeBERenderer(BlockEntityRendererProvider.Context context) {
     }
 
     @Override
     public void render(ItemPipeBE pipeBlockEntity, float partialTicks, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight, int packedOverlay) {
+        if (pipeBlockEntity instanceof DiamondItemPipeBE) {
+            renderDiamondFaces(poseStack, multiBufferSource, packedLight, packedOverlay);
+        }
+
         ItemStack stack = pipeBlockEntity.getItemHandler().getStackInSlot(0);
         if (stack.isEmpty()) return;
 
@@ -100,5 +130,49 @@ public class PipeBERenderer implements BlockEntityRenderer<ItemPipeBE> {
             );
         }
         poseStack.popPose();
+    }
+
+    /**
+     * 在管体（4..12 那个 8×8×8 立方体）的六个面上各画一张方向色贴图。
+     * 画在模型表面外 0.1 像素的位置，避免和模型 z-fighting。
+     */
+    private static void renderDiamondFaces(PoseStack poseStack, MultiBufferSource buffers, int light, int overlay) {
+        VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutout(InventoryMenu.BLOCK_ATLAS));
+        TextureAtlas atlas = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
+
+        final float half = 0.25f;       // 8/16 的一半
+        final float epsilon = 0.0001f; // 稍微往外挪一点
+
+        for (Direction dir : Direction.values()) {
+            TextureAtlasSprite sprite = atlas.apply(DIAMOND_FACE_TEXTURES[dir.ordinal()]);
+
+            poseStack.pushPose();
+            // 挪到方块中心，再旋转成朝向 dir，然后沿 +Z 推到该面
+            poseStack.translate(0.5f, 0.5f, 0.5f);
+            switch (dir) {
+                case SOUTH -> {
+                }
+                case NORTH -> poseStack.mulPose(Axis.YP.rotationDegrees(180f));
+                case UP -> poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
+                case DOWN -> poseStack.mulPose(Axis.XP.rotationDegrees(90f));
+                case EAST -> poseStack.mulPose(Axis.YP.rotationDegrees(90f));
+                case WEST -> poseStack.mulPose(Axis.YP.rotationDegrees(-90f));
+            }
+            poseStack.translate(0f, 0f, half + epsilon);
+
+            PoseStack.Pose pose = poseStack.last();
+            Matrix4f matrix = pose.pose();
+            float u0 = sprite.getU0();
+            float u1 = sprite.getU1();
+            float v0 = sprite.getV0();
+            float v1 = sprite.getV1();
+
+            consumer.addVertex(matrix, -half, -half, 0f).setColor(255, 255, 255, 255).setUv(u0, v1).setOverlay(overlay).setLight(light).setNormal(pose, 0f, 0f, 1f);
+            consumer.addVertex(matrix, half, -half, 0f).setColor(255, 255, 255, 255).setUv(u1, v1).setOverlay(overlay).setLight(light).setNormal(pose, 0f, 0f, 1f);
+            consumer.addVertex(matrix, half, half, 0f).setColor(255, 255, 255, 255).setUv(u1, v0).setOverlay(overlay).setLight(light).setNormal(pose, 0f, 0f, 1f);
+            consumer.addVertex(matrix, -half, half, 0f).setColor(255, 255, 255, 255).setUv(u0, v0).setOverlay(overlay).setLight(light).setNormal(pose, 0f, 0f, 1f);
+
+            poseStack.popPose();
+        }
     }
 }
