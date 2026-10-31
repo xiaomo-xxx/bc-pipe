@@ -106,8 +106,10 @@ public abstract class AbstractTransportPipeBE<CAP> extends PipeBlockEntity<CAP> 
 
     /**
      * 把本 tick 的进度交给 {@link PipeSyncManager}，按区块合并成每个区块一个包。
+     * <p>
+     * public 是因为子类在别的包里，搬运交接时需要给「下一根管道」同步一次。
      */
-    protected void queueMovementSync() {
+    public void queueMovementSync() {
         if (level instanceof ServerLevel serverLevel) {
             PipeSyncManager.queueMovement(serverLevel, worldPosition, this.movement);
         }

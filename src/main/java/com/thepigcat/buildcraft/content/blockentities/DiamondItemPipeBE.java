@@ -112,7 +112,7 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
 
                         List<Direction> nextOutputs = nextPipe.getValidOutputs();
                         Direction nextTo = nextPipe.chooseBestOutput(nextOutputs, stack);
-                        nextPipe.setTo(nextTo != null ? nextTo : nextPipe.from);
+                        nextPipe.setTo(nextTo != null ? nextTo : nextPipe.getFrom());
 
                         nextPipe.lastMovement = -0.5f;
                         nextPipe.movement = -0.5f;
@@ -120,7 +120,7 @@ public class DiamondItemPipeBE extends ItemPipeBE implements MenuProvider {
 
                         nextPipe.queueMovementSync();
                         nextPipe.sendToTracking(new SyncPipeDirectionPayload(nextPipe.getBlockPos(),
-                                Optional.ofNullable(nextPipe.from), Optional.ofNullable(nextPipe.to)));
+                                Optional.ofNullable(nextPipe.getFrom()), Optional.ofNullable(nextPipe.getTo())));
                     } else {
                         IItemHandler targetHandler = capabilityCaches.get(bestOutput).getCapability();
                         if (targetHandler != null) {
