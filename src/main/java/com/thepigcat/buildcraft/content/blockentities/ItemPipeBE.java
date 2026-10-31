@@ -1,10 +1,6 @@
 package com.thepigcat.buildcraft.content.blockentities;
 
-import com.thepigcat.buildcraft.BCConfig;
-import com.thepigcat.buildcraft.BuildcraftLegacy;
-import com.thepigcat.buildcraft.api.blockentities.PipeBlockEntity;
-import com.thepigcat.buildcraft.api.pipes.MovementSyncTarget;
-import com.thepigcat.buildcraft.networking.PipeSyncManager;
+import com.thepigcat.buildcraft.api.blockentities.AbstractTransportPipeBE;
 import com.thepigcat.buildcraft.networking.SyncPipeDirectionPayload;
 import com.thepigcat.buildcraft.registries.BCBlockEntities;
 import com.thepigcat.buildcraft.util.BlockUtils;
@@ -12,7 +8,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,39 +18,18 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-public class ItemPipeBE extends PipeBlockEntity<IItemHandler> implements MovementSyncTarget {
+/**
+ * 物品管道。运输进度的公共部分见 {@link AbstractTransportPipeBE}，
+ * 这里只处理「物品」相关的部分：槽位、能否接收、输出选择。
+ */
+public class ItemPipeBE extends AbstractTransportPipeBE<IItemHandler> {
     protected final ItemStackHandler itemHandler;
-
-    protected Direction from;
-    protected Direction to;
-    private Direction prevFrom;
-
-    /**
-     * Current progress of the item through this pipe segment.
-     * Range: -0.5 (entry face) → 0.0 (center) → 1.0 (exit face)
-     * >= 1.0 means the item is ready to transfer out.
-     */
-    public float movement;
-    /** Previous movement value, used for client-side interpolation. */
-    public float lastMovement;
-
-    /**
-     * 客户端专用：服务端最近一次同步过来的目标进度。
-     * <p>
-     * 网络包到达的时刻并不均匀（服务端 tick 抖动 + 网络抖动），如果直接拿包里的值渲染，
-     * 物品位置会每帧跳一下，看起来就是「抽搐」。客户端每 tick 只朝这个目标逼近一部分，
-     * 运动就始终连续。
-     */
-    public float targetMovement;
-
-    /**
-     * Last side an item was successfully routed to. Kept so the hot path can skip the
-     * "scan every output for a matching stack" loop that {@link #chooseBestOutput} otherwise runs
-     * on every single transfer.
-     */
-    protected Direction preferredOutput;
 
     // Track how many items each direction has received (for round-robin splitting)
     private final Map<Direction, Integer> itemsSent = new EnumMap<>(Direction.class);
@@ -79,39 +53,6 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> implements Movemen
         for (Direction d : Direction.values()) {
             itemsSent.put(d, 0);
         }
-    }
-
-    @Override
-    public void onLoad() {
-        super.onLoad();
-        if (level instanceof ServerLevel) {
-            cacheTransferSpeed();
-        }
-    }
-
-    /**
-     * Cache transfer speed once at load, avoiding per-tick registry lookups.
-     */
-    protected void cacheTransferSpeed() {
-        String pipeId = this.getBlockState().getBlock().builtInRegistryHolder().key().location().getPath();
-        double blocksPerSecond;
-        if (pipeId.contains("gold")) {
-            blocksPerSecond = BCConfig.goldPipeSpeed;
-        } else if (pipeId.contains("emerald")) {
-            blocksPerSecond = BCConfig.emeraldPipeSpeed;
-        } else if (pipeId.contains("void")) {
-            blocksPerSecond = BCConfig.voidPipeSpeed;
-        } else if (pipeId.contains("diamond")) {
-            blocksPerSecond = BCConfig.diamondPipeSpeed;
-        } else if (pipeId.contains("wooden")) {
-            blocksPerSecond = BCConfig.woodenPipeSpeed;
-        } else if (pipeId.contains("iron")) {
-            blocksPerSecond = BCConfig.ironPipeSpeed;
-        } else {
-            blocksPerSecond = BCConfig.basicPipeSpeed;
-        }
-        // transferSpeed = blocksPerTick (server runs at 20 TPS)
-        this.transferSpeed = (float) (blocksPerSecond / 20.0);
     }
 
     @Override
@@ -214,6 +155,7 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> implements Movemen
         return false;
     }
 
+    @Override
     public void tick() {
         if (level.isClientSide()) {
             tickClient();
@@ -299,63 +241,12 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> implements Movemen
     }
 
     /**
-     * 客户端每 tick 把 movement 朝服务端目标值逼近一半。
-     * 这样无论数据包什么时候到达，渲染用的位置都是连续变化的。
+     * 回弹时额外把 from/to 同步给客户端 —— 在途物品的渲染方向依赖这两个值。
      */
-    @Override
-    public void applyTargetMovement(float movement) {
-        this.targetMovement = movement;
-    }
-
-    protected void tickClient() {
-        this.lastMovement = this.movement;
-
-        float delta = this.targetMovement - this.movement;
-        if (Math.abs(delta) < 0.002f || Math.abs(delta) > 0.6f) {
-            // 已经对齐；或者差值过大（换物品、反向回弹），本来就该瞬间变化，直接对齐
-            this.movement = this.targetMovement;
-        } else {
-            this.movement += delta * 0.5f;
-        }
-    }
-
-    /**
-     * Hands this pipe's current movement state to {@link PipeSyncManager}, which flushes one
-     * packet per chunk at the end of the server tick instead of one packet per pipe.
-     */
-    protected void queueMovementSync() {
-        if (level instanceof ServerLevel serverLevel) {
-            PipeSyncManager.queueMovement(serverLevel, worldPosition, this.movement);
-        }
-    }
-
-    public void setFrom(Direction from) {
-        this.prevFrom = this.from;
-        this.from = from;
-    }
-
-    public void setTo(Direction to) {
-        this.to = to;
-    }
-
     protected void moveItemBackward() {
-        Direction oldTo = this.to;
-        this.to = from;
-        this.from = oldTo;
-        this.lastMovement = 0;
-        this.movement = 0;
-
-        queueMovementSync();
+        super.moveBackward();
         sendToTracking(new SyncPipeDirectionPayload(worldPosition,
                 Optional.ofNullable(from), Optional.ofNullable(this.to)));
-    }
-
-    public Direction getFrom() {
-        return from;
-    }
-
-    public Direction getTo() {
-        return to;
     }
 
     /**
@@ -377,27 +268,13 @@ public class ItemPipeBE extends PipeBlockEntity<IItemHandler> implements Movemen
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         this.itemHandler.deserializeNBT(registries, tag.getCompound("item_handler"));
-        int toIndex = tag.getInt("to");
-        if (toIndex != -1) {
-            this.to = Direction.values()[toIndex];
-        }
-        int fromIndex = tag.getInt("from");
-        if (fromIndex != -1) {
-            this.from = Direction.values()[fromIndex];
-        }
-        this.movement = tag.contains("movement") ? tag.getFloat("movement") : 0f;
-        this.lastMovement = tag.contains("lastMovement") ? tag.getFloat("lastMovement") : 0f;
-        // 方块实体数据同步过来的值作为初始目标，之后由网络包持续更新
-        this.targetMovement = this.movement;
+        loadTransport(tag);
     }
 
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.put("item_handler", this.itemHandler.serializeNBT(registries));
-        tag.putInt("to", to != null ? to.ordinal() : -1);
-        tag.putInt("from", from != null ? from.ordinal() : -1);
-        tag.putFloat("movement", movement);
-        tag.putFloat("lastMovement", lastMovement);
+        saveTransport(tag);
     }
 }

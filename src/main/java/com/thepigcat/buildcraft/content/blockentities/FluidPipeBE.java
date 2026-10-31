@@ -1,15 +1,11 @@
 package com.thepigcat.buildcraft.content.blockentities;
 
-import com.thepigcat.buildcraft.BCConfig;
-import com.thepigcat.buildcraft.api.blockentities.PipeBlockEntity;
-import com.thepigcat.buildcraft.api.pipes.MovementSyncTarget;
-import com.thepigcat.buildcraft.networking.PipeSyncManager;
+import com.thepigcat.buildcraft.api.blockentities.AbstractTransportPipeBE;
 import com.thepigcat.buildcraft.registries.BCBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.BlockCapability;
@@ -25,23 +21,14 @@ import java.util.List;
 /**
  * 液体管道。
  * <p>
- * 和物品管道一样用 movement（-0.5 入口面 → 1.0 出口面）表示一段管道里的运输进度，
- * 只是管道里装的是 {@link FluidTank} 而不是物品槽。抽取管道从相邻容器拉液体，
- * 普通管道靠上游灌入，到 1.0 时推给下一格。
+ * 运输进度的公共部分见 {@link AbstractTransportPipeBE}，这里只处理「液体」相关的部分：
+ * 储罐、能否接收、抽取与推出。
  */
-public class FluidPipeBE extends PipeBlockEntity<IFluidHandler> implements MovementSyncTarget {
-    /** 每段管道一次能承载的液体量（mB）。相当于"一个液体包"。 */
+public class FluidPipeBE extends AbstractTransportPipeBE<IFluidHandler> {
+    /** 每段管道一次能承载的液体量（mB）。相当于「一个液体包」。 */
     public static final int PIPE_CAPACITY = 1000;
 
     protected final FluidTank tank;
-
-    protected Direction from;
-    protected Direction to;
-    private Direction preferredOutput;
-
-    public float movement;
-    public float lastMovement;
-    public float targetMovement;
 
     public FluidPipeBE(BlockPos pos, BlockState state) {
         this(BCBlockEntities.FLUID_PIPE.get(), pos, state);
@@ -72,41 +59,6 @@ public class FluidPipeBE extends PipeBlockEntity<IFluidHandler> implements Movem
     @Override
     protected BlockCapability<IFluidHandler, Direction> getCapType() {
         return Capabilities.FluidHandler.BLOCK;
-    }
-
-    @Override
-    public void onLoad() {
-        super.onLoad();
-        if (level instanceof ServerLevel) {
-            cacheTransferSpeed();
-        }
-    }
-
-    /** 速度沿用物品管道的配置，按方块 id 匹配，只在加载时算一次。 */
-    protected void cacheTransferSpeed() {
-        String pipeId = this.getBlockState().getBlock().builtInRegistryHolder().key().location().getPath();
-        double blocksPerSecond;
-        if (pipeId.contains("gold")) {
-            blocksPerSecond = BCConfig.goldPipeSpeed;
-        } else if (pipeId.contains("emerald")) {
-            blocksPerSecond = BCConfig.emeraldPipeSpeed;
-        } else if (pipeId.contains("void")) {
-            blocksPerSecond = BCConfig.voidPipeSpeed;
-        } else if (pipeId.contains("diamond")) {
-            blocksPerSecond = BCConfig.diamondPipeSpeed;
-        } else if (pipeId.contains("wooden")) {
-            blocksPerSecond = BCConfig.woodenPipeSpeed;
-        } else if (pipeId.contains("iron")) {
-            blocksPerSecond = BCConfig.ironPipeSpeed;
-        } else {
-            blocksPerSecond = BCConfig.basicPipeSpeed;
-        }
-        this.transferSpeed = (float) (blocksPerSecond / 20.0);
-    }
-
-    @Override
-    public void applyTargetMovement(float movement) {
-        this.targetMovement = movement;
     }
 
     @Override
@@ -144,23 +96,6 @@ public class FluidPipeBE extends PipeBlockEntity<IFluidHandler> implements Movem
         this.lastMovement = this.movement;
         this.movement += transferSpeed;
         queueMovementSync();
-    }
-
-    protected void tickClient() {
-        this.lastMovement = this.movement;
-
-        float delta = this.targetMovement - this.movement;
-        if (Math.abs(delta) < 0.002f || Math.abs(delta) > 0.6f) {
-            this.movement = this.targetMovement;
-        } else {
-            this.movement += delta * 0.5f;
-        }
-    }
-
-    protected void queueMovementSync() {
-        if (level instanceof ServerLevel serverLevel) {
-            PipeSyncManager.queueMovement(serverLevel, worldPosition, this.movement);
-        }
     }
 
     /** 抽取管道用：从 extracting 那一侧的容器里抽一批液体。 */
@@ -249,55 +184,17 @@ public class FluidPipeBE extends PipeBlockEntity<IFluidHandler> implements Movem
         return preferredOutput;
     }
 
-    protected void moveBackward() {
-        Direction oldTo = this.to;
-        this.to = this.from;
-        this.from = oldTo;
-        this.movement = 0f;
-        this.lastMovement = 0f;
-        queueMovementSync();
-    }
-
-    public void setFrom(Direction from) {
-        this.from = from;
-    }
-
-    public void setTo(Direction to) {
-        this.to = to;
-    }
-
-    public Direction getFrom() {
-        return from;
-    }
-
-    public Direction getTo() {
-        return to;
-    }
-
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         this.tank.readFromNBT(registries, tag.getCompound("tank"));
-        int fromIndex = tag.getInt("from");
-        if (fromIndex != -1) {
-            this.from = Direction.values()[fromIndex];
-        }
-        int toIndex = tag.getInt("to");
-        if (toIndex != -1) {
-            this.to = Direction.values()[toIndex];
-        }
-        this.movement = tag.getFloat("movement");
-        this.lastMovement = tag.getFloat("lastMovement");
-        this.targetMovement = this.movement;
+        loadTransport(tag);
     }
 
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.put("tank", this.tank.writeToNBT(registries, new CompoundTag()));
-        tag.putInt("from", from != null ? from.ordinal() : -1);
-        tag.putInt("to", to != null ? to.ordinal() : -1);
-        tag.putFloat("movement", movement);
-        tag.putFloat("lastMovement", lastMovement);
+        saveTransport(tag);
     }
 }
